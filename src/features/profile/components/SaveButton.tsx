@@ -1,12 +1,11 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
-  View,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface SaveButtonProps {
@@ -16,14 +15,8 @@ interface SaveButtonProps {
 }
 
 const colors = {
-  light: {
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  primary: '#00284D',
+  gold: '#C5A059',
 };
 
 export const SaveButton: React.FC<SaveButtonProps> = ({
@@ -31,8 +24,6 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
   loading = false,
   disabled = false,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
 
   return (
     <TouchableOpacity
@@ -41,7 +32,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
       style={[
         styles.button,
         {
-          backgroundColor: theme.primary,
+          backgroundColor: colors.primary,
           opacity: disabled ? 0.6 : 1,
         },
       ]}
@@ -49,11 +40,11 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
     >
       <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator color={theme.gold} size="small" />
+          <ActivityIndicator color={colors.gold} size="small" />
         ) : (
-          <MaterialIcons name="check-circle" size={20} color={theme.gold} />
+          <MaterialIcons name="check-circle" size={20} color={colors.gold} />
         )}
-        <Text style={[styles.text, { color: theme.gold }]}>
+        <Text style={[styles.text, { color: colors.gold }]}>
           {loading ? 'Guardando...' : 'Guardar Perfil'}
         </Text>
       </View>

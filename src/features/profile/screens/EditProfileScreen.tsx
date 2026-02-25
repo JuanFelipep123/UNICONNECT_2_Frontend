@@ -7,36 +7,24 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
 import { useAuthStore } from '../../../store/authStore';
 import { AcademicInfoSection } from '../components/AcademicInfoSection';
+import { ContactInfoSection } from '../components/ContactInfoSection';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { SaveButton } from '../components/SaveButton';
 import { SubjectsSection } from '../components/SubjectsSection';
 import { useProfileForm } from '../hooks/useProfileForm';
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-    error: '#DC2626',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-    error: '#EF4444',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  label: '#64748B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
+  error: '#DC2626',
 };
 
 interface EditProfileScreenProps {
@@ -46,8 +34,7 @@ interface EditProfileScreenProps {
 export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
   isOnboarding = false,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
+  const theme = colors;
   const { markProfileAsComplete } = useAuthStore();
 
   const {
@@ -57,6 +44,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
     updateCareer,
     updateSemester,
     updateAvatar,
+    updatePhone,
     addSubject,
     removeSubject,
     saveProfile,
@@ -92,6 +80,9 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
           headerStyle: { backgroundColor: theme.primary },
           headerTintColor: '#fff',
           headerTitleStyle: { color: '#fff', fontWeight: '600' },
+          headerRight: () => null,
+          headerLeft: () => null,
+          headerBackVisible: false,
         }}
       />
 
@@ -116,6 +107,14 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
             semester={profile.semester}
             onCareerChange={updateCareer}
             onSemesterChange={updateSemester}
+          />
+        </View>
+
+        {/* Sección de información de contacto */}
+        <View style={styles.section}>
+          <ContactInfoSection
+            phone={profile.phone || ''}
+            onPhoneChange={updatePhone}
           />
         </View>
 
@@ -174,7 +173,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 24,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   buttonContainer: {
     position: 'absolute',

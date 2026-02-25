@@ -8,6 +8,9 @@ export interface ProfileData {
   semester: number;
   avatar?: string;
   subjects: Subject[];
+  phone?: string;
+  name?: string;
+  university?: string;
 }
 
 export interface Career {

@@ -9,6 +9,7 @@ interface UseProfileFormReturn {
   updateCareer: (career: string) => void;
   updateSemester: (semester: number) => void;
   updateAvatar: (uri: string) => void;
+  updatePhone: (phone: string) => void;
   addSubject: (name: string) => void;
   removeSubject: (id: string) => void;
   saveProfile: () => Promise<boolean>;
@@ -36,6 +37,10 @@ export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn 
 
   const updateAvatar = useCallback((uri: string) => {
     setProfile((prev) => ({ ...prev, avatar: uri }));
+  }, []);
+
+  const updatePhone = useCallback((phone: string) => {
+    setProfile((prev) => ({ ...prev, phone }));
   }, []);
 
   const addSubject = useCallback((name: string) => {
@@ -98,6 +103,7 @@ export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn 
   return {
     profile,
     loading,
+    updatePhone,
     error,
     updateCareer,
     updateSemester,

@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 
 interface SubjectsSectionProps {
@@ -15,24 +14,13 @@ interface SubjectsSectionProps {
 }
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    background: '#F8F9FA',
-    surface: '#F8F9FA',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  label: '#64748B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
 };
 
 export const SubjectsSection: React.FC<SubjectsSectionProps> = ({
@@ -40,8 +28,7 @@ export const SubjectsSection: React.FC<SubjectsSectionProps> = ({
   onAddSubject,
   onRemoveSubject,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'light' ? colors.light : colors.dark;
+  const theme = colors;
 
   return (
     <View>

@@ -1,10 +1,9 @@
 import { Picker } from '@react-native-picker/picker';
 import React from 'react';
 import {
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { CAREERS, SEMESTERS } from '../types/profile';
 
@@ -16,24 +15,13 @@ interface AcademicInfoSectionProps {
 }
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  label: '#64748B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
 };
 
 export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
@@ -42,32 +30,31 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
   onCareerChange,
   onSemesterChange,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
+  const theme = colors;
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: theme.gold }]}>
+      <Text style={[styles.title, { color: colors.gold }]}>
         Información Académica
       </Text>
 
       {/* Carrera */}
       <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: theme.label }]}>Carrera</Text>
+        <Text style={[styles.label, { color: colors.label }]}>Carrera</Text>
         <View
           style={[
             styles.pickerContainer,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
             },
           ]}
         >
           <Picker
             selectedValue={career}
             onValueChange={onCareerChange}
-            style={[styles.picker, { color: theme.text }]}
-            dropdownIconColor={theme.gold}
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.gold}
           >
             <Picker.Item label="Selecciona una carrera" value="" />
             {CAREERS.map((c) => (
@@ -79,23 +66,23 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
 
       {/* Semestre */}
       <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: theme.label }]}>
+        <Text style={[styles.label, { color: colors.label }]}>
           Semestre Actual
         </Text>
         <View
           style={[
             styles.pickerContainer,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
             },
           ]}
         >
           <Picker
             selectedValue={semester}
             onValueChange={onSemesterChange}
-            style={[styles.picker, { color: theme.text }]}
-            dropdownIconColor={theme.gold}
+            style={[styles.picker, { color: colors.text }]}
+            dropdownIconColor={colors.gold}
           >
             {SEMESTERS.map((s) => (
               <Picker.Item
