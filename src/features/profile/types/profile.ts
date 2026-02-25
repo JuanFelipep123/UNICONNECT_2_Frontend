@@ -2,7 +2,7 @@ export interface Subject {
   id: string;
   name: string;
 }
-
+/*
 export interface ProfileData {
   career: string;
   semester: number;
@@ -11,6 +11,19 @@ export interface ProfileData {
   phone?: string;
   name?: string;
   university?: string;
+}*/
+
+// src/features/profile/types/profile.ts
+export interface ProfileData {
+  id: string;             // Se recomienda usar 'id_perfil' para ser exactos con el esquema
+  nombre?: string;        // Coincide
+  apellido?: string;      // CAMBIO: Postman devolvió 'apellido', no 'apellidos'
+  carrera: string;        // Coincide
+  semestre: number;       // Coincide
+  celular?: string;       // Coincide
+  avatar?: string;        
+  fecha_creacion?: string; // Coincide
+  materias: Subject[];    // Se mantiene para la lógica de la App (tabla intermedia)
 }
 
 export interface Career {

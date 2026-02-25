@@ -1,10 +1,10 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View,
-  Text,
   StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 
 interface ProfileInfoItemProps {
   icon: string;

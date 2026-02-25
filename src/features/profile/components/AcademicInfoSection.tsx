@@ -30,33 +30,22 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
   onCareerChange,
   onSemesterChange,
 }) => {
-  const theme = colors;
-
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.gold }]}>
+      <Text style={[styles.title, { color: '#C5A059' }]}>
         Información Académica
       </Text>
 
-      {/* Carrera */}
       <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: colors.label }]}>Carrera</Text>
-        <View
-          style={[
-            styles.pickerContainer,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <Text style={styles.label}>Carrera</Text>
+        <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={career}
             onValueChange={onCareerChange}
-            style={[styles.picker, { color: colors.text }]}
-            dropdownIconColor={colors.gold}
+            style={styles.picker}
+            dropdownIconColor="#C5A059"
           >
-            <Picker.Item label="Selecciona una carrera" value="" />
+            <Picker.Item label="Selecciona tu carrera" value="" color="#94A3B8" />
             {CAREERS.map((c) => (
               <Picker.Item key={c.value} label={c.label} value={c.value} />
             ))}
@@ -64,32 +53,17 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
         </View>
       </View>
 
-      {/* Semestre */}
       <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: colors.label }]}>
-          Semestre Actual
-        </Text>
-        <View
-          style={[
-            styles.pickerContainer,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <Text style={styles.label}>Semestre Actual</Text>
+        <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={semester}
             onValueChange={onSemesterChange}
-            style={[styles.picker, { color: colors.text }]}
-            dropdownIconColor={colors.gold}
+            style={styles.picker}
+            dropdownIconColor="#C5A059"
           >
             {SEMESTERS.map((s) => (
-              <Picker.Item
-                key={s.value}
-                label={s.label}
-                value={s.value}
-              />
+              <Picker.Item key={s.value} label={s.label} value={s.value} />
             ))}
           </Picker>
         </View>
@@ -99,33 +73,27 @@ export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 20,
+  container: { marginTop: 10 },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  fieldContainer: { marginBottom: 16 },
+  label: { 
+    fontSize: 11, 
+    fontWeight: '700', 
+    color: '#64748B', 
+    marginBottom: 8, 
+    marginLeft: 4,
+    textTransform: 'uppercase' 
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    fontFamily: 'Playfair Display',
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginLeft: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  pickerContainer: {
-    borderWidth: 1,
+  pickerWrapper: {
+    borderWidth: 1.5,
     borderRadius: 12,
-    overflow: 'hidden',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden', // Importante para redondear bordes en Android
     justifyContent: 'center',
   },
   picker: {
-    height: 56,
+    height: 55, // Altura estándar para Picker
+    width: '100%',
   },
 });

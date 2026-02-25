@@ -1,10 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 
 interface ContactInfoSectionProps {
@@ -13,12 +13,10 @@ interface ContactInfoSectionProps {
 }
 
 const colors = {
-  background: '#F8F9FA',
   surface: '#FFFFFF',
   text: '#1E293B',
   label: '#64748B',
   border: '#E2E8F0',
-  primary: '#00284D',
   gold: '#C5A059',
 };
 
@@ -36,15 +34,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
         <Text style={[styles.label, { color: colors.label }]}>
           Número Telefónico
         </Text>
-        <View
-          style={[
-            styles.inputContainer,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
+        <View style={styles.inputWrapper}>
           <MaterialIcons
             name="phone"
             size={20}
@@ -52,12 +42,12 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
             style={styles.icon}
           />
           <TextInput
-            placeholder="+57 123 456 7890"
-            placeholderTextColor={colors.label}
+            placeholder="+57 300 000 0000"
+            placeholderTextColor="#94A3B8"
             value={phone}
             onChangeText={onPhoneChange}
             keyboardType="phone-pad"
-            style={[styles.input, { color: colors.text }]}
+            style={styles.input}
           />
         </View>
       </View>
@@ -67,38 +57,43 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 10,
+    width: '100%',
+    minHeight: 100, // Asegura que ocupe espacio
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    fontFamily: 'Playfair Display',
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     marginBottom: 8,
-    marginLeft: 8,
+    marginLeft: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderRadius: 12,
     paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    height: 50, // Altura fija para evitar colapsos
   },
   icon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
+    height: '100%',
+    fontSize: 15,
+    color: '#1E293B',
   },
 });

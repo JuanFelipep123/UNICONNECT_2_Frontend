@@ -17,11 +17,15 @@ interface UseProfileFormReturn {
 
 export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn => {
   const [profile, setProfile] = useState<ProfileData>(
-    initialData || {
-      career: '',
-      semester: 1,
-      subjects: [],
-    }
+  initialData || {
+        id: '',           // Añadimos el id vacío para cumplir con la interfaz
+        carrera: '',
+        semestre: 1,
+        materias: [],
+        nombre: '',       // Es buena práctica inicializar los campos que vas a usar
+        celular: '',
+        avatar: '',
+      }
   );
   
   const [loading, setLoading] = useState(false);
@@ -53,52 +57,48 @@ export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn 
     
     setProfile((prev) => ({
       ...prev,
-      subjects: [...prev.subjects, newSubject],
+      materias: [...prev.materias, newSubject],
     }));
   }, []);
 
   const removeSubject = useCallback((id: string) => {
     setProfile((prev) => ({
       ...prev,
-      subjects: prev.subjects.filter((subject) => subject.id !== id),
+      subjects: prev.materias.filter((subject) => subject.id !== id),
     }));
   }, []);
 
-  const saveProfile = useCallback(async (): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Validación básica
-      if (!profile.career) {
-        setError('Por favor selecciona una carrera');
-        setLoading(false);
-        return false;
-      }
+  const saveProfile = async (): Promise<boolean> => {
+    // 1. Obtenemos las credenciales del .env
+    const token = process.env.EXPO_PUBLIC_API_TOKEN;
+    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
 
-      if (!profile.semester) {
-        setError('Por favor selecciona un semestre');
-        setLoading(false);
-        return false;
-      }
-
-      // Llamar API
-      const response = await profileService.saveProfile(profile);
-      
-      if (!response.success) {
-        setError(response.error || 'Error al guardar');
-        setLoading(false);
-        return false;
-      }
-
-      setLoading(false);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-      setLoading(false);
+    if (!token || !userId) {
+      setError("No hay token o ID configurado en el .env");
       return false;
     }
-  }, [profile]);
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // CORRECCIÓN AQUÍ:
+      // Pasamos el ID del usuario, los datos del perfil y el Token de seguridad
+      const response = await profileService.updateProfile(userId, profile, token);
+      
+      if (!response.success) {
+        setError(response.error || "Error al actualizar");
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      setError("Error de conexión con el servidor");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return {
     profile,

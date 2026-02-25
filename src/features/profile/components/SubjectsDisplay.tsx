@@ -1,10 +1,9 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 interface Subject {
