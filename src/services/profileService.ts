@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { ProfileData } from '../features/profile/types/profile';
 
 interface ApiResponse<T> {
@@ -6,99 +7,90 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-// TODO: Reemplazar con tu URL base de API real
-const API_BASE_URL = 'https://api.example.com';
+const getBaseUrl = () => {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (!hostUri) return 'https://tu-api-produccion.com/api';
+  
+  const ip = hostUri.split(':')[0];
+  // Asegúrate de que tu backend use el prefijo /api si así lo configuraste
+  return `http://${ip}:3001/api`; 
+};
+
+const API_BASE_URL = getBaseUrl();
 
 export const profileService = {
-  /**
-   * Obtiene el perfil actual del usuario
-   */
-  async getProfile(): Promise<ApiResponse<ProfileData>> {
+  async getProfileById(id: string, token: string): Promise<ApiResponse<ProfileData>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile`, {
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // TODO: Agregar token de autenticación
+          'Authorization': `Bearer ${token}` 
         },
       });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data };
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Error: ${response.status}`);
+      return { success: true, data: result.data };
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido',
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Error de conexión' };
     }
   },
 
-  /**
-   * Guarda o actualiza el perfil del usuario
-   */
-  async saveProfile(profileData: ProfileData): Promise<ApiResponse<ProfileData>> {
+  async updateProfile(id: string, profileData: any, token: string): Promise<ApiResponse<any>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/profile`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, {
+        method: 'PUT', 
         headers: {
           'Content-Type': 'application/json',
-          // TODO: Agregar token de autenticación
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(profileData),
       });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      return { success: true, data };
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Error: ${response.status}`);
+      return { success: true, data: result.data };
     } catch (error) {
-      console.error('Error saving profile:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al guardar',
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Error al guardar cambios' };
     }
   },
 
   /**
-   * Carga una foto de perfil
+   * NUEVO: Para guardar la relación en perfil_materia
    */
-  async uploadAvatar(uri: string): Promise<ApiResponse<{ url: string }>> {
+  async updateProfileSubjects(id: string, subjectIds: string[], token: string): Promise<ApiResponse<any>> {
     try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
-      } as any);
-
-      const response = await fetch(`${API_BASE_URL}/profile/avatar`, {
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}/subjects`, {
         method: 'POST',
         headers: {
-          // TODO: Agregar token de autenticación
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: formData,
+        body: JSON.stringify({ subjectIds }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { success: true, data };
+      const result = await response.json();
+      return { success: response.ok, data: result.data, error: result.error };
     } catch (error) {
-      console.error('Error uploading avatar:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al subir foto',
-      };
+      return { success: false, error: 'Error al actualizar materias' };
+    }
+  },
+
+  async uploadAvatar(id: string, uri: string, token: string): Promise<ApiResponse<{ url: string }>> {
+    try {
+      const formData = new FormData();
+      // @ts-ignore
+      formData.append('file', { uri, type: 'image/jpeg', name: `avatar_${id}.jpg` });
+
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}/avatar`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Error: ${response.status}`);
+      return { success: true, data: result.data };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Error al subir foto' };
     }
   },
 };

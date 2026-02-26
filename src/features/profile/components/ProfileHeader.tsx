@@ -5,7 +5,6 @@ import {
     Image,
     StyleSheet,
     TouchableOpacity,
-    useColorScheme,
     View
 } from 'react-native';
 
@@ -15,30 +14,18 @@ interface ProfileHeaderProps {
 }
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
 };
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   avatarUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCvo_Ngu1E5u_x_s5agSUOxRTwg68pCpWwwpYOSpAivY8hc20HxjELeR9TvUWuK_lwbHCnr6XsMwvb7FBaw8419Bf4rEHbj7S7ieeJMyxxlJy26L9NV_4lFmL-q_ea3wfys_THzznJneT8g4A95O-0V4qRhUF01RmblSRw-UKT3VoskElWB7AysGXIYJPdgHScE9SCS0KkHP9zs5SW1yiDa1OYh02WjhAc4wh0Hi35G5xLOxkb-48V3rAx1e_33Nw-GNiv3I2ZOHuAW',
   onAvatarChange,
 }) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
   const [loading, setLoading] = useState(false);
 
   const pickImage = async () => {
@@ -63,7 +50,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={[styles.avatarContainer, { borderColor: theme.surface }]}>
+      <View style={[styles.avatarContainer, { borderColor: colors.surface }]}>
         <Image
           source={{ uri: avatarUrl }}
           style={styles.avatar}
@@ -71,12 +58,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <TouchableOpacity
           style={[
             styles.cameraButton,
-            { backgroundColor: theme.surface, borderColor: theme.border },
+            { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
           onPress={pickImage}
           disabled={loading}
         >
-          <MaterialIcons name="camera-alt" size={20} color={theme.gold} />
+          <MaterialIcons name="camera-alt" size={20} color={colors.gold} />
         </TouchableOpacity>
       </View>
     </View>

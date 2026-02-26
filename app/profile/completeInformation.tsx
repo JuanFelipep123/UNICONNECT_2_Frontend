@@ -3,39 +3,26 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  label: '#64748B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
 };
 
-export default function EditProfileScreen() {
+export default function CompleteProfileScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
+  const theme = colors;
 
   const [career, setCareer] = useState('engineering');
   const [semester, setSemester] = useState(5);

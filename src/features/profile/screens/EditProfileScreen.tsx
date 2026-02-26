@@ -1,54 +1,45 @@
-import { Stack, router } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  useColorScheme,
+  KeyboardAvoidingView, // Añadido para manejo de teclado
+  Platform,             // Añadido para detectar SO
 } from 'react-native';
-import { useAuthStore } from '../../../store/authStore';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Ajustado
 import { AcademicInfoSection } from '../components/AcademicInfoSection';
+import { ContactInfoSection } from '../components/ContactInfoSection';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { SaveButton } from '../components/SaveButton';
 import { SubjectsSection } from '../components/SubjectsSection';
 import { useProfileForm } from '../hooks/useProfileForm';
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-    error: '#DC2626',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-    error: '#EF4444',
-  },
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  text: '#1E293B',
+  label: '#64748B',
+  border: '#E2E8F0',
+  primary: '#00284D',
+  gold: '#C5A059',
+  error: '#DC2626',
 };
 
-interface EditProfileScreenProps {
-  isOnboarding?: boolean; // Indica si es el primer completado o edición
-}
+export const EditProfileScreen = ({ isOnboarding = false }) => {
+  const theme = colors;
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets(); // Hook para áreas seguras
 
-export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
-  isOnboarding = false,
-}) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
-  const { markProfileAsComplete } = useAuthStore();
+  const initialData = React.useMemo(() => {
+    return params.initialData 
+      ? JSON.parse(params.initialData as string) 
+      : undefined;
+  }, [params.initialData]);
 
   const {
     profile,
@@ -57,133 +48,156 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({
     updateCareer,
     updateSemester,
     updateAvatar,
+    updatePhone,
     addSubject,
     removeSubject,
     saveProfile,
-  } = useProfileForm();
+  } = useProfileForm(initialData);
 
   const handleSave = async () => {
     const success = await saveProfile();
-
     if (success) {
-      Alert.alert(
-        '¡Éxito!',
-        isOnboarding
-          ? 'Perfil completado. ¡Bienvenido a UniConnect!'
-          : 'Perfil actualizado correctamente'
-      );
-
+      Alert.alert('¡Éxito!', 'Información actualizada correctamente');
       if (isOnboarding) {
-        markProfileAsComplete();
-        router.replace('/(tabs)');
+        router.replace('/(tabs)' as any);
       } else {
         router.back();
       }
     } else {
-      Alert.alert('Error', error || 'No se pudo guardar el perfil');
+      Alert.alert('Error', error || 'No se pudo guardar los cambios');
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <Stack.Screen
-        options={{
-          title: isOnboarding ? 'Completar Registro' : 'Editar Perfil',
-          headerStyle: { backgroundColor: theme.primary },
-          headerTintColor: '#fff',
-          headerTitleStyle: { color: '#fff', fontWeight: '600' },
-        }}
-      />
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: 120 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Encabezado */}
-        <ProfileHeader
-          avatarUrl={profile.avatar}
-          onAvatarChange={updateAvatar}
-        />
-
-        {/* Sección de información académica */}
-        <View style={styles.section}>
-          <AcademicInfoSection
-            career={profile.career}
-            semester={profile.semester}
-            onCareerChange={updateCareer}
-            onSemesterChange={updateSemester}
-          />
-        </View>
-
-        {/* Sección de materias */}
-        <View style={styles.section}>
-          <SubjectsSection
-            subjects={profile.subjects.map((s: any) => s?.name ?? s?.title ?? String(s))}
-            onAddSubject={() => addSubject('')}
-            onRemoveSubject={(index: number) => {
-              const subject = profile.subjects[index];
-              if (subject?.id) {
-                removeSubject(subject.id);
-              }
-            }}
-          />
-        </View>
-
-        {/* Mensajes de error */}
-        {error && (
-          <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
-            <Text style={[styles.errorText, { color: theme.error }]}>
-              {error}
-            </Text>
-          </View>
-        )}
-
-        {isOnboarding && (
-          <View style={[styles.infoContainer, { backgroundColor: theme.primary + '10' }]}>
-            <Text style={[styles.infoText, { color: theme.primary }]}>
-              Por favor completa tu información académica para continuar.
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Botón flotante guardar */}
-      <View style={[styles.buttonContainer, { backgroundColor: theme.background }]}>
-        <SaveButton
-          onPress={handleSave}
-          loading={loading}
-        />
+  if (loading && !profile.nombre) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
-    </SafeAreaView>
+    );
+  }
+
+  return (
+    // KeyboardAvoidingView asegura que el teclado no tape los inputs en iOS
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+    >
+      <SafeAreaView 
+        style={[styles.container, { backgroundColor: theme.background }]}
+        edges={['top', 'left', 'right']} // Dejamos el bottom para el contenedor del botón
+      >
+        <Stack.Screen
+          options={{
+            title: isOnboarding ? 'Completar Registro' : 'Editar Perfil',
+            headerStyle: { backgroundColor: theme.primary },
+            headerTintColor: '#fff',
+          }}
+        />
+
+        <ScrollView
+          style={styles.scrollView}
+          // Ajustamos el padding bottom dinámicamente para que el botón no tape el contenido final
+          contentContainerStyle={[
+            styles.content, 
+            { paddingBottom: 100 + insets.bottom }
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <ProfileHeader
+            avatarUrl={profile.avatar}
+            onAvatarChange={updateAvatar}
+          />
+          
+          <View style={styles.readOnlyContainer}>
+            <Text style={styles.userName}>
+              {profile.nombre} {profile.apellido}
+            </Text>
+            <Text style={styles.readOnlyLabel}>Datos validados por la cuenta</Text>
+          </View>
+
+          <View style={styles.section}>
+            <AcademicInfoSection
+              career={profile.carrera}
+              semester={profile.semestre}
+              onCareerChange={updateCareer}
+              onSemesterChange={updateSemester}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <ContactInfoSection
+              phone={profile.celular || ''}
+              onPhoneChange={updatePhone}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <SubjectsSection
+              subjects={(profile.materias || []).map((s) => s?.name || '')} 
+              onAddSubject={() => addSubject('Nueva Materia')}
+              onRemoveSubject={(index: number) => {
+                const subject = (profile.materias || [])[index];
+                if (subject?.id) removeSubject(subject.id);
+              }}
+            />
+          </View>
+
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Contenedor del botón con margen dinámico para iPhone */}
+        <View style={[
+          styles.buttonContainer, 
+          { 
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
+            backgroundColor: theme.background 
+          }
+        ]}>
+          <SaveButton onPress={handleSave} loading={loading} />
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
+  container: { flex: 1 },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  scrollView: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 8 },
   section: {
-    marginBottom: 12,
+    marginBottom: 24,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  readOnlyContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: -10,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  readOnlyLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 24,
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
@@ -191,18 +205,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 12,
     borderRadius: 8,
+    backgroundColor: '#FEE2E2',
   },
   errorText: {
+    color: '#DC2626',
     fontSize: 13,
-    fontWeight: '500',
-  },
-  infoContainer: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 8,
-  },
-  infoText: {
-    fontSize: 13,
-    fontWeight: '500',
+    textAlign: 'center',
   },
 });
