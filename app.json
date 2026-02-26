@@ -50,7 +50,9 @@
     },
     "owner": "juanfe_004",
     "updates": {
-      "url": "https://u.expo.dev/17aa4738-1808-4eaa-b726-bde0a9318b77"
+      "url": "https://u.expo.dev/17aa4738-1808-4eaa-b726-bde0a9318b77",
+      "enabled": false,
+      "checkAutomatically": "ON_ERROR_RECOVERY"
     },
     "runtimeVersion": {
       "policy": "appVersion"
