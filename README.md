@@ -1,65 +1,197 @@
-# Welcome to your Expo app 👋
+# UniConnect
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicación móvil universitaria desarrollada para la **Universidad de Caldas** que facilita la conexión entre estudiantes, permitiéndoles compartir información académica, gestionar su perfil y descubrir compañeros con intereses afines.
 
-## Get started
+## Tecnologías
 
-To start the app, in your terminal run:
+| Categoría      | Tecnología                         |
+| -------------- | ---------------------------------- |
+| Framework      | React Native 0.81 + Expo SDK 54    |
+| Lenguaje       | TypeScript ~5.9                    |
+| Navegación     | Expo Router 6 (file-based routing) |
+| Estado global  | Zustand 5                          |
+| Imágenes       | expo-image                         |
+| Autenticación  | expo-auth-session (Google OAuth)   |
+| Backend client | Supabase JS 2.x                    |
+| Animaciones    | react-native-reanimated 4          |
 
-```bash
-npm run start
+## Estructura del Proyecto
+
+```
+├── app/                            # Rutas (Expo Router file-based)
+│   ├── _layout.tsx                 # Layout raíz con Stack principal
+│   ├── +not-found.tsx              # Pantalla 404
+│   ├── (tabs)/                     # Navegación por pestañas
+│   │   ├── _layout.tsx             # Configuración de tabs
+│   │   ├── index.tsx               # Inicio
+│   │   ├── explore.tsx             # Explorar
+│   │   └── profile.tsx             # Perfil (vista)
+│   ├── (onboarding)/               # Flujo de primer ingreso
+│   │   ├── _layout.tsx             # Layout onboarding
+│   │   └── complete-profile.tsx    # Completar perfil tras registro
+│   └── profile/                    # Rutas de perfil (modales/stack)
+│       ├── _layout.tsx             # Layout con header
+│       ├── edit-profile.tsx        # Edición de perfil
+│       └── completeInformation.tsx # Completar información
+├── src/
+│   ├── features/
+│   │   └── profile/                # Módulo de perfil
+│   │       ├── screens/            # Pantallas principales
+│   │       ├── components/         # Componentes del módulo
+│   │       ├── hooks/              # Lógica de formularios
+│   │       └── types/              # Tipos TypeScript
+│   ├── components/                 # Componentes reutilizables (UI)
+│   ├── services/                   # Servicios de API
+│   ├── store/                      # Estado global (Zustand)
+│   ├── hooks/                      # Hooks compartidos
+│   └── theme/                      # Paleta de colores
+├── assets/                         # Imágenes y fuentes
+├── app.json                        # Configuración de Expo
+└── eas.json                        # Configuración de EAS Build
 ```
 
-In the output, you'll find options to open the app in:
+## Funcionalidades Implementadas (Sprint 1)
 
-- [a development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [an Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [an iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Módulo de Perfil
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Módulo completo de gestión del perfil universitario con dos modos de uso:
 
-## Workflows
+- **Vista de perfil** — Pantalla de solo lectura que muestra avatar, nombre, carrera, semestre, teléfono y materias actuales. Se carga dinámicamente desde el backend mediante `profileService`.
+- **Edición de perfil** — Formulario reutilizable (`EditProfileScreen`) con:
+  - Selector de avatar (integración con `expo-image-picker`)
+  - Selector de carrera (14 carreras de la Universidad de Caldas)
+  - Selector de semestre (1–10)
+  - Campo de teléfono de contacto
+  - Gestor de materias (agregar/eliminar con modal)
+  - Validación de campos obligatorios
+  - Soporte automático para dark mode
 
-This project is configured to use [EAS Workflows](https://docs.expo.dev/eas/workflows/get-started/) to automate some development and release processes. These commands are set up in [`package.json`](./package.json) and can be run using NPM scripts in your terminal.
+- **Onboarding** — Flujo de primer completado de perfil tras el registro. Reutiliza `EditProfileScreen` con el prop `isOnboarding` y redirige a la pantalla principal al finalizar.
 
-### Previews
+**Componentes del módulo:**
 
-Run `npm run draft` to [publish a preview update](https://docs.expo.dev/eas/workflows/examples/publish-preview-update/) of your project, which can be viewed in Expo Go or in a development build.
+| Componente            | Descripción                                       |
+| --------------------- | ------------------------------------------------- |
+| `ProfileViewScreen`   | Pantalla de visualización del perfil              |
+| `EditProfileScreen`   | Pantalla de edición (onboarding y edición normal) |
+| `ProfileHeader`       | Avatar circular con botón de editar foto          |
+| `AcademicInfoSection` | Selects de carrera y semestre                     |
+| `ContactInfoSection`  | Campo de teléfono                                 |
+| `SubjectsSection`     | Gestión de materias (agregar/eliminar)            |
+| `SubjectsDisplay`     | Tags de materias en vista de lectura              |
+| `ProfileInfoItem`     | Ítem genérico de información                      |
+| `SectionHeader`       | Encabezado de sección reutilizable                |
+| `SaveButton`          | Botón de guardar con estado de carga              |
 
-### Development Builds
+### Navegación
 
-Run `npm run development-builds` to [create a development build](https://docs.expo.dev/eas/workflows/examples/create-development-builds/). Note - you'll need to follow the [Prerequisites](https://docs.expo.dev/eas/workflows/examples/create-development-builds/#prerequisites) to ensure you have the correct emulator setup on your machine.
+- **Tab Bar** con tres pestañas: Inicio, Explorar y Perfil
+- **Stack Navigation** para rutas de edición y onboarding
+- **Typed Routes** habilitadas para seguridad de tipos en navegación
 
-### Production Deployments
+### Estado Global
 
-Run `npm run deploy` to [deploy to production](https://docs.expo.dev/eas/workflows/examples/deploy-to-production/). Note - you'll need to follow the [Prerequisites](https://docs.expo.dev/eas/workflows/examples/deploy-to-production/#prerequisites) to ensure you're set up to submit to the Apple and Google stores.
+Store de autenticación con Zustand (`authStore.ts`):
 
-## Hosting
+- Flag `needsCompleteProfile` para controlar el flujo de onboarding
+- Acciones `setNeedsCompleteProfile` y `markProfileAsComplete`
 
-Expo offers hosting for websites and API functions via EAS Hosting. See the [Getting Started](https://docs.expo.dev/eas/hosting/get-started/) guide to learn more.
+### Servicios de API
 
+`profileService.ts` con endpoints listos para integrar con el backend:
 
-## Get a fresh project
+- `getProfileById(id, token)` — Obtener perfil por ID
+- `updateProfile(id, data, token)` — Actualizar perfil
+- `updateProfileSubjects(id, subjectIds, token)` — Gestionar materias
+- `uploadAvatar(id, uri, token)` — Subir foto de perfil
 
-When you're ready, run:
+La URL del backend se resuelve automáticamente usando `Constants.expoConfig.hostUri` en desarrollo.
+
+### Paleta de Colores
+
+| Color            | Hex       | Uso                       |
+| ---------------- | --------- | ------------------------- |
+| Primary          | `#00284D` | Headers, botones, acentos |
+| Gold             | `#C5A059` | Detalles secundarios      |
+| Background Light | `#F8F9FA` | Fondo modo claro          |
+| Background Dark  | `#0F172A` | Fondo modo oscuro         |
+
+## Requisitos Previos
+
+- [Node.js](https://nodejs.org/) v18+
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
+- [Expo Go](https://expo.dev/go) instalado en el dispositivo móvil
+- Cuenta de [Expo](https://expo.dev/)
+
+## Instalación
 
 ```bash
-npm run reset-project
+# Clonar el repositorio
+git clone <url-del-repositorio>
+cd UNICONNECT_2_Frontend
+
+# Instalar dependencias
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Variables de Entorno
 
-## Learn more
+Crear un archivo `.env` en la raíz del proyecto:
 
-To learn more about developing your project with Expo, look at the following resources:
+```env
+EXPO_PUBLIC_API_TOKEN=<token-del-backend>
+EXPO_PUBLIC_TEST_USER_ID=<id-de-usuario-para-pruebas>
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Ejecución
 
-## Join the community
+```bash
+# Iniciar servidor de desarrollo
+npx expo start
 
-Join our community of developers creating universal apps.
+# Iniciar con caché limpio
+npx expo start --clear
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# Verificar salud del proyecto
+npx expo doctor
+```
+
+Escanear el código QR con **Expo Go** en el dispositivo.
+
+## Scripts Disponibles
+
+| Script               | Comando                    | Descripción                      |
+| -------------------- | -------------------------- | -------------------------------- |
+| `start`              | `npx expo start`           | Inicia el servidor de desarrollo |
+| `lint`               | `npx expo lint`            | Ejecuta ESLint                   |
+| `android`            | `npx expo start --android` | Inicia en emulador Android       |
+| `ios`                | `npx expo start --ios`     | Inicia en simulador iOS          |
+| `draft`              | Workflow EAS               | Publica preview update           |
+| `development-builds` | Workflow EAS               | Crea builds de desarrollo        |
+| `deploy`             | Workflow EAS               | Despliega a producción           |
+
+## Build y Despliegue
+
+El proyecto está configurado con **EAS Build** para compilación nativa:
+
+```bash
+# Build de desarrollo
+npx eas-cli@latest build --profile development --platform android
+
+# Build de preview
+npx eas-cli@latest build --profile preview --platform android
+
+# Build de producción
+npx eas-cli@latest build --profile production --platform android
+```
+
+## Equipo
+
+| Integrante | Módulo                                        |
+| ---------- | --------------------------------------------- |
+| Alejandro  | Autenticación con Google OAuth                |
+| Compañero  | Módulo de perfil (vista, edición, onboarding) |
+
+## Licencia
+
+Proyecto académico — Universidad de Caldas, Ingeniería de Sistemas.
