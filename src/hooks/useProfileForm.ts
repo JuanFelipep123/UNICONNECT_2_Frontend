@@ -11,7 +11,7 @@ export const useProfileForm = () => {
     semestre: 1,
     materias: [],
     celular: '',
-    avatar: '',
+    //avatar: '',
   });
 
   const [loading, setLoading] = useState(false);

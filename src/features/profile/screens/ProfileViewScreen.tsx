@@ -1,17 +1,18 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
+import React, { useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+// Importamos useSafeAreaInsets para el manejo dinámico de márgenes en iOS/Android
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProfileInfoItem } from '../components/ProfileInfoItem';
 import { SectionHeader } from '../components/SectionHeader';
 import { SubjectsDisplay } from '../components/SubjectsDisplay';
@@ -36,62 +37,53 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   profileData,
 }) => {
   const router = useRouter();
+  const insets = useSafeAreaInsets(); // Hook para detectar áreas seguras (Notch, Home Bar)
   
   const [profile, setProfile] = useState<ProfileData | null>(profileData || null);
-  const [loading, setLoading] = useState<boolean>(!profileData);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    const loadProfileData = async () => {
-      try {
-        setLoading(true);
+  const loadProfileData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = process.env.EXPO_PUBLIC_API_TOKEN;
+      const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
 
-        /** * LÓGICA TEMPORAL (.env)
-         * Extraemos el token y el ID del archivo .env para simular el login.
-         */
-        const token = process.env.EXPO_PUBLIC_API_TOKEN;
-        const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-
-        if (!token || !userId) {
-          Alert.alert(
-            'Error de Configuración', 
-            'No se encontraron las variables EXPO_PUBLIC_API_TOKEN o EXPO_PUBLIC_TEST_USER_ID en el archivo .env'
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Llamada al servicio con la IP dinámica (configurada en el service)
-        const response = await profileService.getProfileById(userId, token);
-        
-        if (response.success && response.data) {
-          setProfile(response.data);
-        } else {
-          Alert.alert('Aviso del Servidor', response.error || 'No se encontró el perfil');
-        }
-      } catch (error) {
-        console.error('Error en carga de perfil:', error);
-        Alert.alert('Error de Conexión', 'No se pudo conectar con el servidor Express');
-      } finally {
+      if (!token || !userId) {
+        Alert.alert('Error', 'Faltan variables de entorno .env');
         setLoading(false);
+        return;
       }
-    };
 
-    if (!profileData) {
-      loadProfileData();
+      const response = await profileService.getProfileById(userId, token);
+      
+      if (response.success && response.data) {
+        setProfile(response.data);
+      } else {
+        Alert.alert('Aviso', response.error || 'No se encontró el perfil');
+      }
+    } catch (error) {
+      console.error('Error en carga de perfil:', error);
+      Alert.alert('Error', 'No se pudo conectar con el servidor');
+    } finally {
+      setLoading(false);
     }
-  }, [profileData]);
+  }, []);
 
-  // Pantalla de carga profesional
-  if (loading) {
+  useFocusEffect(
+    useCallback(() => {
+      loadProfileData();
+    }, [loadProfileData])
+  );
+
+  if (loading && !profile) {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 10, color: colors.label }}>Cargando datos reales...</Text>
+        <Text style={{ marginTop: 10, color: colors.label }}>Actualizando perfil...</Text>
       </View>
     );
   }
 
-  // Estado de error si no hay datos
   if (!profile) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -101,31 +93,26 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
     );
   }
 
-  const careerDisplay = profile.carrera || 'No especificado';
-  const semesterDisplay = profile.semestre 
-    ? `${profile.semestre}º Semestre`
-    : 'No especificado';
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <Stack.Screen
         options={{
           title: 'Mi Perfil Universitario',
           headerStyle: { backgroundColor: colors.primary },
           headerTintColor: '#fff',
-          headerTitleStyle: { 
-            fontWeight: '600',
-            fontSize: 18,
-          },
+          headerTitleStyle: { fontWeight: '600', fontSize: 18 },
         }}
       />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        // Ajustamos el padding inferior del scroll para que el contenido no quede detrás del botón
+        contentContainerStyle={[
+          styles.scrollContent, 
+          { paddingBottom: 100 + insets.bottom } 
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header de Perfil con datos del Backend */}
         <View style={styles.profileHeader}>
           <View style={[styles.avatarContainer, { borderColor: colors.surface }]}>
             <Image
@@ -134,50 +121,51 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
             />
           </View>
           <Text style={[styles.name, { color: colors.primary }]}>
-            {profile.nombre || 'Estudiante'}
+            {profile.nombre} {profile.apellido}
           </Text>
           <Text style={[styles.university, { color: colors.label }]}>
             {profile.universidad || 'Universidad de Caldas'}
           </Text>
         </View>
 
-        {/* Sección Académica */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <SectionHeader title="Información Académica" />
-          <ProfileInfoItem
-            icon="school"
-            label="Programa"
-            value={careerDisplay}
-          />
-          <ProfileInfoItem
-            icon="calendar-today"
-            label="Semestre Actual"
-            value={semesterDisplay}
+          <ProfileInfoItem icon="school" label="Programa" value={profile.carrera || 'No especificado'} />
+          <ProfileInfoItem 
+            icon="calendar-today" 
+            label="Semestre Actual" 
+            value={profile.semestre ? `${profile.semestre}º Semestre` : 'No especificado'} 
           />
         </View>
 
-        {/* Información de Contacto */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <SectionHeader title="Información de Contacto" />
-          <ProfileInfoItem
-            icon="phone"
-            label="Teléfono"
-            value={profile.celular || 'No especificado'} 
-          />
+          <ProfileInfoItem icon="phone" label="Teléfono" value={profile.celular || 'No especificado'} />
         </View>
 
-        {/* Materias Actuales (US-003) */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <SectionHeader title="Materias Actuales" />
           <SubjectsDisplay subjects={profile.materias || []} />
         </View>
       </ScrollView>
         
-      {/* Botón Editar Perfil (US-004) */}
-      <View style={[styles.footer, { backgroundColor: colors.surface }]}>
+      {/* FOOTER AJUSTADO PARA IPHONE */}
+      <View style={[
+        styles.footer, 
+        { 
+          backgroundColor: colors.surface,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 20, // Manejo dinámico del área segura
+          height: 80 + (insets.bottom > 0 ? insets.bottom : 0)
+        }
+      ]}>
         <TouchableOpacity
           style={[styles.editButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/profile/edit' as any)}
+          onPress={() => {
+            router.push({
+              pathname: '/profile/edit-profile',
+              params: { initialData: JSON.stringify(profile) }
+            });
+          }}
           activeOpacity={0.9}
         >
           <MaterialIcons name="edit" size={20} color={colors.gold} />
@@ -191,70 +179,31 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 100,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  centerContent: { justifyContent: 'center', alignItems: 'center' },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 20 },
+  profileHeader: { alignItems: 'center', marginBottom: 28 },
   avatarContainer: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     borderWidth: 4,
     overflow: 'hidden',
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    elevation: 4,
   },
-  avatar: {
-    width: '100%',
-    height: '100%',
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  university: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  section: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+  avatar: { width: '100%', height: '100%' },
+  name: { fontSize: 24, fontWeight: '700', marginBottom: 4 },
+  university: { fontSize: 14, fontWeight: '500' },
+  section: { borderRadius: 12, padding: 16, marginBottom: 16, elevation: 1 },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 24,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -263,18 +212,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
-  editButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
+  editButtonText: { fontSize: 14, fontWeight: '700', letterSpacing: 1 },
 });
-
-
 
 
 

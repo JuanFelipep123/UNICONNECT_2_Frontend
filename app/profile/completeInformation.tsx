@@ -20,7 +20,7 @@ const colors = {
   gold: '#C5A059',
 };
 
-export default function EditProfileScreen() {
+export default function CompleteProfileScreen() {
   const router = useRouter();
   const theme = colors;
 
