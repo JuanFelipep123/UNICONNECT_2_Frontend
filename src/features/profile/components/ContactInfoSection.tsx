@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -20,40 +20,48 @@ const colors = {
   gold: '#C5A059',
 };
 
-export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
-  phone,
-  onPhoneChange,
-}) => {
-  return (
-    <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.gold }]}>
-        Información de Contacto
-      </Text>
-
-      <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: colors.label }]}>
-          Número Telefónico
+export const ContactInfoSection = memo<ContactInfoSectionProps>(
+  ({ phone, onPhoneChange }) => {
+    // Memoizar el handler de cambio de teléfono
+    const handlePhoneChange = useCallback((text: string) => {
+      const onlyNumbers = text.replace(/\D/g, '');
+      const limitedNumbers = onlyNumbers.slice(0, 10);
+      onPhoneChange(limitedNumbers);
+    }, [onPhoneChange]);
+    return (
+      <View style={styles.container}>
+        <Text style={[styles.title, { color: colors.gold }]}>
+          Información de Contacto
         </Text>
-        <View style={styles.inputWrapper}>
-          <MaterialIcons
-            name="phone"
-            size={20}
-            color={colors.gold}
-            style={styles.icon}
-          />
-          <TextInput
-            placeholder="+57 300 000 0000"
-            placeholderTextColor="#94A3B8"
-            value={phone}
-            onChangeText={onPhoneChange}
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
+
+        <View style={styles.fieldContainer}>
+          <Text style={[styles.label, { color: colors.label }]}>
+            Número Telefónico
+          </Text>
+          <View style={styles.inputWrapper}>
+            <MaterialIcons
+              name="phone"
+              size={20}
+              color={colors.gold}
+              style={styles.icon}
+            />
+            <TextInput
+              placeholder="302 000 0000"
+              placeholderTextColor="#94A3B8"
+              value={phone}
+              onChangeText={handlePhoneChange}
+              keyboardType="phone-pad"
+              maxLength={10}
+              style={styles.input}
+            />
+          </View>
         </View>
       </View>
-    </View>
-  );
-};
+    );
+  }
+);
+
+ContactInfoSection.displayName = 'ContactInfoSection';
 
 const styles = StyleSheet.create({
   container: {

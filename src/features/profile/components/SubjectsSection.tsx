@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
+import React, { memo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -11,6 +11,7 @@ interface SubjectsSectionProps {
   subjects: string[];
   onAddSubject?: () => void;
   onRemoveSubject?: (index: number) => void;
+  canRemove?: boolean;
 }
 
 const colors = {
@@ -19,45 +20,47 @@ const colors = {
   surface: '#FFFFFF',
 };
 
-export const SubjectsSection: React.FC<SubjectsSectionProps> = ({
-  subjects,
-  onAddSubject,
-  onRemoveSubject,
-}) => {
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.gold }]}>
-          Materias Actuales
-        </Text>
-        <TouchableOpacity onPress={onAddSubject} style={styles.addButton}>
-          <MaterialIcons name="add-circle-outline" size={22} color={colors.gold} />
-          <Text style={[styles.addButtonText, { color: colors.gold }]}>
-            Añadir
+export const SubjectsSection = memo<SubjectsSectionProps>(
+  ({ subjects, onAddSubject, onRemoveSubject, canRemove = false }) => {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.gold }]}>
+            Materias Actuales
           </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={onAddSubject} style={styles.addButton}>
+            <MaterialIcons name="add-circle-outline" size={22} color={colors.gold} />
+            <Text style={[styles.addButtonText, { color: colors.gold }]}>
+              Añadir
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.subjectsList}>
-        {subjects.length === 0 ? (
-          <Text style={styles.emptyText}>No hay materias registradas</Text>
-        ) : (
-          subjects.map((subject, index) => (
-            <View key={`subject-${index}`} style={styles.subjectTag}>
-              <Text style={styles.subjectText}>{subject}</Text>
-              <TouchableOpacity
-                onPress={() => onRemoveSubject?.(index)}
-                style={styles.closeButton}
-              >
-                <MaterialIcons name="cancel" size={18} color="#CBD5E1" />
-              </TouchableOpacity>
-            </View>
-          ))
-        )}
+        <View style={styles.subjectsList}>
+          {subjects.length === 0 ? (
+            <Text style={styles.emptyText}>No hay materias registradas</Text>
+          ) : (
+            subjects.map((subject, index) => (
+              <View key={`subject-${index}`} style={styles.subjectTag}>
+                <Text style={styles.subjectText}>{subject}</Text>
+                {canRemove && (
+                  <TouchableOpacity
+                    onPress={() => onRemoveSubject?.(index)}
+                    style={styles.closeButton}
+                  >
+                    <MaterialIcons name="cancel" size={18} color="#CBD5E1" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))
+          )}
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  }
+);
+
+SubjectsSection.displayName = 'SubjectsSection';
 
 const styles = StyleSheet.create({
   container: {

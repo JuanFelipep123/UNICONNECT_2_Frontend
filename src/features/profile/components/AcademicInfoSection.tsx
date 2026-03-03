@@ -1,10 +1,10 @@
 import { Picker } from '@react-native-picker/picker';
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import {
-    StyleSheet,
-    Text,
-    useColorScheme,
-    View
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View
 } from 'react-native';
 import { CAREERS, SEMESTERS } from '../types/profile';
 
@@ -36,80 +36,92 @@ const colors = {
   },
 };
 
-export const AcademicInfoSection: React.FC<AcademicInfoSectionProps> = ({
-  career,
-  semester,
-  onCareerChange,
-  onSemesterChange,
-}) => {
-  const colorScheme = useColorScheme();
-  const theme = colorScheme === 'dark' ? colors.dark : colors.light;
+export const AcademicInfoSection = memo<AcademicInfoSectionProps>(
+  ({ career, semester, onCareerChange, onSemesterChange }) => {
+    const colorScheme = useColorScheme();
+    const theme = colorScheme === 'dark' ? colors.dark : colors.light;
 
-  return (
-    <View style={styles.container}>
-      <Text style={[styles.title, { color: theme.gold }]}>
-        Información Académica
-      </Text>
+    const semesterString = semester ? String(semester) : '';
+    const careerString = career || '';
 
-      {/* Carrera */}
-      <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: theme.label }]}>Carrera</Text>
-        <View
-          style={[
-            styles.pickerContainer,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Picker
-            selectedValue={career}
-            onValueChange={onCareerChange}
-            style={[styles.picker, { color: theme.text }]}
-            dropdownIconColor={theme.gold}
-          >
-            <Picker.Item label="Selecciona una carrera" value="" />
-            {CAREERS.map((c) => (
-              <Picker.Item key={c.value} label={c.label} value={c.value} />
-            ))}
-          </Picker>
-        </View>
-      </View>
+    // Memoizar handlers para evitar recreación innecesaria
+    const handleSemesterChange = useCallback((value: string) => {
+      const semesterNumber = value ? parseInt(value, 10) : 0;
+      onSemesterChange(semesterNumber);
+    }, [onSemesterChange]);
 
-      {/* Semestre */}
-      <View style={styles.fieldContainer}>
-        <Text style={[styles.label, { color: theme.label }]}>
-          Semestre Actual
+    const handleCareerChange = useCallback((value: string) => {
+      onCareerChange(value);
+    }, [onCareerChange]);
+
+    return (
+      <View style={styles.container}>
+        <Text style={[styles.title, { color: theme.gold }]}>
+          Información Académica
         </Text>
-        <View
-          style={[
-            styles.pickerContainer,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <Picker
-            selectedValue={semester}
-            onValueChange={onSemesterChange}
-            style={[styles.picker, { color: theme.text }]}
-            dropdownIconColor={theme.gold}
+
+        {/* Carrera */}
+        <View style={styles.fieldContainer}>
+          <Text style={[styles.label, { color: theme.label }]}>Carrera</Text>
+          <View
+            style={[
+              styles.pickerContainer,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
           >
-            {SEMESTERS.map((s) => (
-              <Picker.Item
-                key={s.value}
-                label={s.label}
-                value={s.value}
-              />
-            ))}
-          </Picker>
+            <Picker
+              selectedValue={careerString}
+              onValueChange={handleCareerChange}
+              style={[styles.picker, { color: theme.text }]}
+              dropdownIconColor={theme.gold}
+            >
+              <Picker.Item label="Selecciona una carrera" value="" />
+              {CAREERS.map((c) => (
+                <Picker.Item key={c.value} label={c.label} value={c.value} />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Semestre */}
+        <View style={styles.fieldContainer}>
+          <Text style={[styles.label, { color: theme.label }]}>
+            Semestre Actual
+          </Text>
+          <View
+            style={[
+              styles.pickerContainer,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <Picker
+              selectedValue={semesterString}
+              onValueChange={handleSemesterChange}
+              style={[styles.picker, { color: theme.text }]}
+              dropdownIconColor={theme.gold}
+            >
+              {SEMESTERS.map((s) => (
+                <Picker.Item
+                  key={s.value}
+                  label={s.label}
+                  value={s.value}
+                />
+              ))}
+            </Picker>
+          </View>
         </View>
       </View>
-    </View>
-  );
-};
+    );
+  }
+);
+
+AcademicInfoSection.displayName = 'AcademicInfoSection';
 
 const styles = StyleSheet.create({
   container: {

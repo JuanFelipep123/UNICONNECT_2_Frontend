@@ -15,16 +15,15 @@ export interface ProfileData {
 
 // src/features/profile/types/profile.ts
 export interface ProfileData {
-  id: string;             // Se recomienda usar 'id_perfil' para ser exactos con el esquema
-  nombre?: string;        // Coincide
-  apellido?: string;      // CAMBIO: Postman devolvió 'apellido', no 'apellidos'
-  carrera: string;        // Coincide
-  semestre: number;       // Coincide
-  celular?: string;       // Coincide
-  avatar?: string;        
-  fecha_creacion?: string; // Coincide
-  materias: Subject[];    // Se mantiene para la lógica de la App (tabla intermedia)
-  universidad?: string;   // NUEVO: Para mostrar la universidad en el perfil
+  id: string;
+  name?: string;           // Nombre del usuario
+  email?: string;          // Email del usuario
+  avatar_url?: string | null;  // URL del avatar
+  career?: string | null;  // Carrera/Programa
+  semester?: number | null; // Semestre actual
+  phone_number?: string | null; // Número de teléfono
+  created_at?: string;    // Fecha de creación
+  materias?: Subject[];    // Se mantiene para la lógica de la App (tabla intermedia)
 }
 
 export interface Career {
@@ -38,7 +37,7 @@ export interface Semester {
 }
 
 export const CAREERS: Career[] = [
-  { value: 'Ingeniería de Sistemas', label: 'Ingeniería de Sistemas' },
+  { value: 'Ingeniería de sistemas', label: 'Ingeniería de sistemas' },
   { value: 'Derecho', label: 'Derecho' },
   { value: 'Ingeniería Agronómica', label: 'Ingeniería Agronómica' },
   { value: 'Diseño Visual', label: 'Diseño Visual' },
