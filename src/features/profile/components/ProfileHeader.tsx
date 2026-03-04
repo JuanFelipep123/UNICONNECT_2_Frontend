@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import {
     Image,
     StyleSheet,
@@ -22,53 +22,57 @@ const colors = {
   gold: '#C5A059',
 };
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  avatarUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCvo_Ngu1E5u_x_s5agSUOxRTwg68pCpWwwpYOSpAivY8hc20HxjELeR9TvUWuK_lwbHCnr6XsMwvb7FBaw8419Bf4rEHbj7S7ieeJMyxxlJy26L9NV_4lFmL-q_ea3wfys_THzznJneT8g4A95O-0V4qRhUF01RmblSRw-UKT3VoskElWB7AysGXIYJPdgHScE9SCS0KkHP9zs5SW1yiDa1OYh02WjhAc4wh0Hi35G5xLOxkb-48V3rAx1e_33Nw-GNiv3I2ZOHuAW',
-  onAvatarChange,
-}) => {
-  const [loading, setLoading] = useState(false);
+export const ProfileHeader = memo<ProfileHeaderProps>(
+  ({
+    avatarUrl = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCvo_Ngu1E5u_x_s5agSUOxRTwg68pCpWwwpYOSpAivY8hc20HxjELeR9TvUWuK_lwbHCnr6XsMwvb7FBaw8419Bf4rEHbj7S7ieeJMyxxlJy26L9NV_4lFmL-q_ea3wfys_THzznJneT8g4A95O-0V4qRhUF01RmblSRw-UKT3VoskElWB7AysGXIYJPdgHScE9SCS0KkHP9zs5SW1yiDa1OYh02WjhAc4wh0Hi35G5xLOxkb-48V3rAx1e_33Nw-GNiv3I2ZOHuAW',
+    onAvatarChange,
+  }) => {
+    const [loading, setLoading] = useState(false);
 
-  const pickImage = async () => {
-    try {
-      setLoading(true);
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
+    const pickImage = useCallback(async () => {
+      try {
+        setLoading(true);
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
 
-      if (!result.canceled && result.assets[0]) {
-        onAvatarChange?.(result.assets[0].uri);
+        if (!result.canceled && result.assets[0]) {
+          onAvatarChange?.(result.assets[0].uri);
+        }
+      } catch (error) {
+        console.error('Error picking image:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error picking image:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, [onAvatarChange]);
 
-  return (
-    <View style={styles.container}>
-      <View style={[styles.avatarContainer, { borderColor: colors.surface }]}>
-        <Image
-          source={{ uri: avatarUrl }}
-          style={styles.avatar}
-        />
-        <TouchableOpacity
-          style={[
-            styles.cameraButton,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-          onPress={pickImage}
-          disabled={loading}
-        >
-          <MaterialIcons name="camera-alt" size={20} color={colors.gold} />
-        </TouchableOpacity>
+    return (
+      <View style={styles.container}>
+        <View style={[styles.avatarContainer, { borderColor: colors.surface }]}>
+          <Image
+            source={{ uri: avatarUrl }}
+            style={styles.avatar}
+          />
+          <TouchableOpacity
+            style={[
+              styles.cameraButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={pickImage}
+            disabled={loading}
+          >
+            <MaterialIcons name="camera-alt" size={20} color={colors.gold} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  }
+);
+
+ProfileHeader.displayName = 'ProfileHeader';
 
 const styles = StyleSheet.create({
   container: {

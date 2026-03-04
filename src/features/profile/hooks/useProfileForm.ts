@@ -1,6 +1,6 @@
-import { useCallback, useState, useEffect } from 'react';
-import { profileService } from '../../../services/profileService';
-import { ProfileData, Subject } from '../types/profile';
+import { useCallback, useState, useEffect, useMemo } from 'react';
+import { ProfileData } from '../types/profile';
+import { useProfileSave } from './useProfileSave';
 
 interface UseProfileFormReturn {
   profile: ProfileData;
@@ -13,113 +13,84 @@ interface UseProfileFormReturn {
   addSubject: (name: string) => void;
   removeSubject: (id: string) => void;
   saveProfile: () => Promise<boolean>;
+  clearError: () => void;
 }
 
-export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn => {
+export const useProfileForm = (
+  initialData?: ProfileData
+): UseProfileFormReturn => {
   const [profile, setProfile] = useState<ProfileData>(
     initialData || {
       id: '',
-      carrera: '',
-      semestre: 1, 
+      name: '',
+      email: '',
+      career: null,
+      semester: null,
       materias: [],
-      nombre: '',
-      apellido: '',
-      celular: '',
-      avatar: '',
+      phone_number: null,
+      avatar_url: null,
     }
   );
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { saving, error: saveError, saveProfile: performSave, clearError } =
+    useProfileSave();
 
-  // CORRECCIÓN DEL BUCLE INFINITO:
-  // Solo sincronizamos si el ID del perfil que llega es diferente al que tenemos
+  const memoizedInitialData = useMemo(() => initialData, [initialData?.id]);
+
   useEffect(() => {
-    if (initialData && initialData.id !== profile.id) {
-      console.log("Sincronizando datos iniciales una sola vez...");
+    if (memoizedInitialData && memoizedInitialData.id !== profile.id) {
       setProfile({
-        ...initialData,
-        materias: initialData.materias || []
+        ...memoizedInitialData,
+        materias: memoizedInitialData.materias || [],
       });
     }
-  }, [initialData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memoizedInitialData]);
 
-  // Funciones de actualización (se mantienen igual que en el paso anterior)
-  const updateCareer = useCallback((carrera: string) => setProfile(prev => ({ ...prev, carrera })), []);
-  const updateSemester = useCallback((semestre: number) => setProfile(prev => ({ ...prev, semestre })), []);
-  const updatePhone = useCallback((celular: string) => setProfile(prev => ({ ...prev, celular })), []);
-  const updateAvatar = useCallback((uri: string) => setProfile(prev => ({ ...prev, avatar: uri })), []);
+  const updateCareer = useCallback((career: string) => {
+    setProfile((prev) => ({ ...prev, career }));
+  }, []);
 
-  // Manejo de materias (Solo localmente en la pantalla por ahora)
+  const updateSemester = useCallback((semester: number) => {
+    setProfile((prev) => ({ ...prev, semester }));
+  }, []);
+
+  const updatePhone = useCallback((phone: string) => {
+    setProfile((prev) => ({ ...prev, phone_number: phone }));
+  }, []);
+
+  const updateAvatar = useCallback((uri: string) => {
+    setProfile((prev) => ({ ...prev, avatar_url: uri }));
+  }, []);
+
   const addSubject = useCallback((name: string) => {
-    if (!name.trim()) return;
-    setProfile(prev => ({
-      ...prev,
-      materias: [...prev.materias, { id: `${Date.now()}`, name: name.trim() }],
-    }));
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    setProfile((prev) => {
+      const materias = Array.isArray(prev.materias) ? prev.materias : [];
+      return {
+        ...prev,
+        materias: [...materias, { id: String(Date.now()), name: trimmedName }],
+      };
+    });
   }, []);
 
   const removeSubject = useCallback((id: string) => {
-    setProfile(prev => ({
+    setProfile((prev) => ({
       ...prev,
-      materias: prev.materias.filter(s => s.id !== id),
+      materias: prev.materias.filter((s) => s.id !== id),
     }));
   }, []);
 
-  const saveProfile = async (): Promise<boolean> => {
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-
-    if (!token || !userId) {
-      setError("Faltan credenciales en .env");
-      return false;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      /**
-       * LIMPIEZA DEFINITIVA: 
-       * Extraemos 'materias' para que NO se envíen al backend.
-       * Mantenemos solo los campos que existen en tu tabla 'perfil'.
-       */
-      const { 
-        carrera, 
-        semestre, 
-        celular, 
-        avatar // Incluimos avatar ya que lo veo en tu esquema SQL
-      } = profile;
-
-      const datosParaBackend = {
-        carrera,
-        semestre: semestre.toString(), // Tu SQL dice que es 'text', no number
-        celular,
-        avatar
-      };
-
-      console.log("Enviando a tabla perfil:", datosParaBackend);
-
-      const response = await profileService.updateProfile(userId, datosParaBackend, token);
-      
-      if (!response.success) {
-        setError(response.error || "Error al actualizar");
-        return false;
-      }
-      
-      return true;
-    } catch (err) {
-      setError("Error de conexión");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const saveProfile = useCallback(async (): Promise<boolean> => {
+    return performSave(profile);
+  }, [profile, performSave]);
 
   return {
     profile,
-    loading,
-    error,
+    loading: saving,
+    error: saveError,
     updatePhone,
     updateCareer,
     updateSemester,
@@ -127,5 +98,6 @@ export const useProfileForm = (initialData?: ProfileData): UseProfileFormReturn 
     addSubject,
     removeSubject,
     saveProfile,
+    clearError,
   };
 };

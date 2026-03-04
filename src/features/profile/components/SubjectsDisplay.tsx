@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -25,9 +25,7 @@ const colors = {
   gold: '#C5A059',
 };
 
-export const SubjectsDisplay: React.FC<SubjectsDisplayProps> = ({
-  subjects,
-}) => {
+export const SubjectsDisplay = memo<SubjectsDisplayProps>(({ subjects }) => {
   return (
     <View style={styles.container}>
       <ScrollView
@@ -60,7 +58,9 @@ export const SubjectsDisplay: React.FC<SubjectsDisplayProps> = ({
       </ScrollView>
     </View>
   );
-};
+});
+
+SubjectsDisplay.displayName = 'SubjectsDisplay';
 
 const styles = StyleSheet.create({
   container: {

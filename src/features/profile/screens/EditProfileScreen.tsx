@@ -1,5 +1,5 @@
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import React from 'react';
+import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,38 +7,37 @@ import {
   StyleSheet,
   Text,
   View,
-  KeyboardAvoidingView, // Añadido para manejo de teclado
-  Platform,             // Añadido para detectar SO
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Ajustado
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AcademicInfoSection } from '../components/AcademicInfoSection';
 import { ContactInfoSection } from '../components/ContactInfoSection';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { SaveButton } from '../components/SaveButton';
 import { SubjectsSection } from '../components/SubjectsSection';
 import { useProfileForm } from '../hooks/useProfileForm';
-
-const colors = {
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  text: '#1E293B',
-  label: '#64748B',
-  border: '#E2E8F0',
-  primary: '#00284D',
-  gold: '#C5A059',
-  error: '#DC2626',
-};
+import { useProfileLoad } from '../hooks/useProfileLoad';
+import { useLoadProfileSubjects } from '../hooks/useLoadProfileSubjects';
+import { useAuthStore } from '../../../store/authStore';
+import { getErrorMessage, parseError } from '../../../utils/errorHandler';
+import { LIGHT_THEME } from '../../../theme/themeContext';
 
 export const EditProfileScreen = ({ isOnboarding = false }) => {
-  const theme = colors;
+  const theme = LIGHT_THEME;
   const router = useRouter();
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets(); // Hook para áreas seguras
+  const insets = useSafeAreaInsets();
+  const { userId, token } = useAuthStore();
 
-  const initialData = React.useMemo(() => {
-    return params.initialData 
-      ? JSON.parse(params.initialData as string) 
-      : undefined;
+  // Memoizar datos iniciales para evitar recomputación
+  const initialData = useMemo(() => {
+    try {
+      return params.initialData ? JSON.parse(params.initialData as string) : undefined;
+    } catch (error) {
+      console.error('Error al parsear datos iniciales:', error);
+      return undefined;
+    }
   }, [params.initialData]);
 
   const {
@@ -49,12 +48,38 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     updateSemester,
     updateAvatar,
     updatePhone,
-    addSubject,
     removeSubject,
     saveProfile,
   } = useProfileForm(initialData);
 
-  const handleSave = async () => {
+  const { loadProfile } = useProfileLoad();
+  const { subjects: profileSubjects, loading: subjectsLoading, reload: reloadSubjects } = useLoadProfileSubjects(
+    userId || '',
+    token || ''
+  );
+
+  // Refresca el perfil y materias cuando la pantalla enfoca
+  // Esto asegura que los cambios de materias desde SubjectsUpdateScreen se reflejen
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[EditProfileScreen] Pantalla enfocada - cargando datos...');
+      loadProfile();
+      if (userId && token) {
+        reloadSubjects();
+      }
+    }, [loadProfile, reloadSubjects, userId, token])
+  );
+
+  // Log para confirmar materias
+  useMemo(() => {
+    if (profileSubjects.length > 0) {
+      console.log('[EditProfileScreen] Materias cargadas del backend:', profileSubjects.length, 'items');
+      console.log('[EditProfileScreen] Materias:', profileSubjects);
+    }
+  }, [profileSubjects]);
+
+  // Separar lógica de manejo de guardado
+  const handleSave = useCallback(async () => {
     const success = await saveProfile();
     if (success) {
       Alert.alert('¡Éxito!', 'Información actualizada correctamente');
@@ -64,28 +89,29 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
         router.back();
       }
     } else {
-      Alert.alert('Error', error || 'No se pudo guardar los cambios');
+      const appError = parseError({ message: error });
+      const errorMessage = getErrorMessage(appError);
+      Alert.alert('Error', errorMessage);
     }
-  };
+  }, [saveProfile, error, isOnboarding, router]);
 
-  if (loading && !profile.nombre) {
+  if (loading && !profile.name) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    // KeyboardAvoidingView asegura que el teclado no tape los inputs en iOS
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <SafeAreaView 
         style={[styles.container, { backgroundColor: theme.background }]}
-        edges={['top', 'left', 'right']} // Dejamos el bottom para el contenedor del botón
+        edges={['top', 'left', 'right']}
       >
         <Stack.Screen
           options={{
@@ -95,70 +121,84 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
           }}
         />
 
-        <ScrollView
-          style={styles.scrollView}
-          // Ajustamos el padding bottom dinámicamente para que el botón no tape el contenido final
-          contentContainerStyle={[
-            styles.content, 
-            { paddingBottom: 100 + insets.bottom }
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <ProfileHeader
-            avatarUrl={profile.avatar}
-            onAvatarChange={updateAvatar}
-          />
-          
-          <View style={styles.readOnlyContainer}>
-            <Text style={styles.userName}>
-              {profile.nombre} {profile.apellido}
-            </Text>
-            <Text style={styles.readOnlyLabel}>Datos validados por la cuenta</Text>
-          </View>
-
-          <View style={styles.section}>
-            <AcademicInfoSection
-              career={profile.carrera}
-              semester={profile.semestre}
-              onCareerChange={updateCareer}
-              onSemesterChange={updateSemester}
+        {/* Contenedor principal con flex para distribuir el espacio */}
+        <View style={styles.mainContainer}>
+          {/* ScrollView flexible que cede espacio al botón */}
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ProfileHeader
+              avatarUrl={profile.avatar_url || ''}
+              onAvatarChange={updateAvatar}
             />
-          </View>
-
-          <View style={styles.section}>
-            <ContactInfoSection
-              phone={profile.celular || ''}
-              onPhoneChange={updatePhone}
-            />
-          </View>
-
-          <View style={styles.section}>
-            <SubjectsSection
-              subjects={(profile.materias || []).map((s) => s?.name || '')} 
-              onAddSubject={() => addSubject('Nueva Materia')}
-              onRemoveSubject={(index: number) => {
-                const subject = (profile.materias || [])[index];
-                if (subject?.id) removeSubject(subject.id);
-              }}
-            />
-          </View>
-
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
+            
+            <View style={styles.readOnlyContainer}>
+              <Text style={styles.userName}>
+                {profile.name || 'Usuario'}
+              </Text>
+              <Text style={styles.readOnlyLabel}>Datos validados por la cuenta</Text>
             </View>
-          )}
-        </ScrollView>
 
-        {/* Contenedor del botón con margen dinámico para iPhone */}
-        <View style={[
-          styles.buttonContainer, 
-          { 
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
-            backgroundColor: theme.background 
-          }
-        ]}>
-          <SaveButton onPress={handleSave} loading={loading} />
+            <View style={styles.section}>
+              <AcademicInfoSection
+                career={profile.career || ''}
+                semester={profile.semester || 1}
+                onCareerChange={updateCareer}
+                onSemesterChange={updateSemester}
+              />
+            </View>
+
+            <View style={styles.section}>
+              <ContactInfoSection
+                phone={profile.phone_number || ''}
+                onPhoneChange={updatePhone}
+              />
+            </View>
+
+            <View style={styles.section}>
+              {subjectsLoading ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <SubjectsSection
+                  subjects={profileSubjects.map((s) => s?.name || '')}
+                  canRemove={false}
+                  onAddSubject={() => {
+                    router.push({
+                      pathname: '/profile/subjects-update',
+                      params: { 
+                        initialSubjects: JSON.stringify(profileSubjects),
+                        isEditing: 'true'
+                      }
+                    } as any);
+                  }}
+                  onRemoveSubject={(index: number) => {
+                    const subject = profileSubjects[index];
+                    if (subject?.id) removeSubject(subject.id);
+                  }}
+                />
+              )}
+            </View>
+
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Botón fijo en la parte inferior - siempre visible */}
+          <View style={[
+            styles.buttonContainer, 
+            { 
+              paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 20,
+              backgroundColor: theme.background,
+            }
+          ]}>
+            <SaveButton onPress={handleSave} loading={loading} />
+          </View>
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -167,9 +207,21 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  mainContainer: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    paddingBottom: 0,
+  },
   center: { justifyContent: 'center', alignItems: 'center' },
-  scrollView: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 8 },
+  scrollView: { 
+    flex: 1,
+  },
+  scrollContent: { 
+    paddingHorizontal: 16, 
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
   section: {
     marginBottom: 24,
     paddingBottom: 12,
@@ -193,11 +245,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },
