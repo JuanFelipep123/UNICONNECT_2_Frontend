@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import { SearchScreen } from "@/src/features/search/screens/SearchScreen";
 
-export default function ExploreScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Explorar</Text>
-    </View>
-  );
+export default function ExploreRoute() {
+  return <SearchScreen />;
 }
