@@ -145,7 +145,7 @@ export const profileHttpService = {
   },
 
   async getProfileSubjects(profileId: string, token: string): Promise<ApiResponse<Subject[]>> {
-    const url = `${API_BASE_URL}/perfil-materias/${profileId}`;
+    const url = `${API_BASE_URL}/profile-subjects/${profileId}`;
     console.log('\n========== [getProfileSubjects] INICIANDO ==========');
     console.log('Obteniendo materias del perfil...');
     console.log('URL:', url);
@@ -244,7 +244,7 @@ export const profileHttpService = {
     subjectId: string,
     token: string
   ): Promise<ApiResponse<object>> {
-    const url = `${API_BASE_URL}/perfil-materias`;
+    const url = `${API_BASE_URL}/profile-subjects`;
     console.log('\n[addSubjectToProfile] Agregando materia al perfil...');
     console.log('  URL:', url);
     console.log('  Profile ID:', profileId);
@@ -296,7 +296,7 @@ export const profileHttpService = {
     subjectId: string,
     token: string
   ): Promise<ApiResponse<object>> {
-    const url = `${API_BASE_URL}/perfil-materias`;
+    const url = `${API_BASE_URL}/profile-subjects`;
     console.log('\n[removeSubjectFromProfile] Eliminando materia del perfil...');
     console.log('  URL:', url);
     console.log('  Profile ID:', profileId);
