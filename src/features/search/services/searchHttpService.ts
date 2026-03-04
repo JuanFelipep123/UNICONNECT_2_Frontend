@@ -38,7 +38,7 @@ export const searchHttpService = {
     token: string,
   ): Promise<ApiResponse<SearchSubject[]>> {
     try {
-      const url = `${API_BASE_URL}/perfil-materias/${profileId}`;
+      const url = `${API_BASE_URL}/profile-subjects/${profileId}`;
       console.log("[searchHttpService] GET", url);
 
       const response = await fetch(url, {
