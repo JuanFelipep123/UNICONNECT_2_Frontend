@@ -4,8 +4,9 @@
  */
 import { useCallback, useState } from 'react';
 import { profileHttpService } from '../../../services/profileHttpService';
-import { ProfileData } from '../types/profile';
+import { useAuthStore } from '../../../store/authStore';
 import { getErrorMessage, parseError } from '../../../utils/errorHandler';
+import { ProfileData } from '../types/profile';
 
 interface UseProfileSaveReturn {
   saving: boolean;
@@ -17,13 +18,11 @@ interface UseProfileSaveReturn {
 export const useProfileSave = (): UseProfileSaveReturn => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { token, userId } = useAuthStore();
 
   const saveProfile = useCallback(async (profile: ProfileData): Promise<boolean> => {
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-
     if (!token || !userId) {
-      const errorMsg = 'Faltan credenciales en .env';
+      const errorMsg = 'Sesion no disponible. Inicia sesion nuevamente.';
       setError(errorMsg);
       return false;
     }
@@ -59,7 +58,7 @@ export const useProfileSave = (): UseProfileSaveReturn => {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [token, userId]);
 
   const clearError = useCallback(() => {
     setError(null);

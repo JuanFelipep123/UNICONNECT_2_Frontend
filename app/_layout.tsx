@@ -1,18 +1,20 @@
-import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import React, { useEffect } from 'react';
 import { useAuthStore } from '../src/store/authStore';
 
 export default function RootLayout() {
-  const { initializeFromEnv } = useAuthStore();
+  const { hydrateSession } = useAuthStore();
 
   useEffect(() => {
-    // Inicializar credenciales desde variables de entorno
-    initializeFromEnv();
-  }, [initializeFromEnv]);
+    hydrateSession();
+  }, [hydrateSession]);
 
   return (
-    <Stack>
+    <Stack initialRouteName="index">
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+      <Stack.Screen name="expo-auth-session" options={{ headerShown: false }} />
       <Stack.Screen 
         name="profile" 
         options={{ headerShown: false }} 

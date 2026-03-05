@@ -185,7 +185,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
         ]}
       >
         <TouchableOpacity
-          style={[styles.editButton, { backgroundColor: colors.primary }]}
+          style={[styles.actionButton, styles.editButton, { backgroundColor: colors.primary }]}
           onPress={() => {
             router.push({
               pathname: "/profile/edit-profile",
@@ -195,9 +195,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
           activeOpacity={0.9}
         >
           <MaterialIcons name="edit" size={20} color={colors.gold} />
-          <Text style={[styles.editButtonText, { color: colors.gold }]}>
-            EDITAR PERFIL
-          </Text>
+          <Text style={[styles.editButtonText, { color: colors.gold }]}>EDITAR PERFIL</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -233,13 +231,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  editButton: {
+  actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  editButton: {
+    borderWidth: 0,
   },
   editButtonText: { fontSize: 14, fontWeight: "700", letterSpacing: 1 },
 });

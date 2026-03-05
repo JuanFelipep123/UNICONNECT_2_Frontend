@@ -2,7 +2,7 @@
  * Servicio HTTP específico para perfil
  * Soluciona: God Service
  */
-import Constants from 'expo-constants';
+import { API_BASE_URL } from '../config/api';
 import { ProfileData } from '../features/profile/types/profile';
 import { parseError } from '../utils/errorHandler';
 
@@ -21,20 +21,7 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-const getBaseUrl = (): string => {
-  const hostUri = Constants.expoConfig?.hostUri;
-  if (!hostUri) {
-    console.warn('[profileHttpService] No hostUri disponible, usando URL de producción');
-    return 'https://tu-api-produccion.com/api';
-  }
-
-  const ip = hostUri.split(':')[0];
-  const baseUrl = `http://${ip}:3001/api`;
-  console.log('[profileHttpService] Base URL construida:', baseUrl);
-  return baseUrl;
-};
-
-const API_BASE_URL = getBaseUrl();
+console.log('[profileHttpService] Base URL configurada:', API_BASE_URL);
 
 export const profileHttpService = {
   async getProfileById(id: string, token: string): Promise<ApiResponse<ProfileData>> {
