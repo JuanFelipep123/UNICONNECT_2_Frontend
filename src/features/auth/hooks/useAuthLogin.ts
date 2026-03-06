@@ -3,8 +3,6 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { syncAuthUser } from '../services/authService';
-
 WebBrowser.maybeCompleteAuthSession();
 
 type Auth0UserInfo = {
@@ -13,8 +11,60 @@ type Auth0UserInfo = {
   sub?: string;
 };
 
+type AuthSyncResponse = {
+  token?: string;
+  access_token?: string;
+  userId?: string;
+  user_id?: string;
+  profile_id?: string;
+  id?: string;
+  data?: AuthSyncResponse;
+  user?: AuthSyncResponse;
+  profile?: AuthSyncResponse;
+};
+
+type AuthSessionData = {
+  userId: string;
+  token: string;
+};
+
 const AUTH_CALLBACK_PATH = 'auth/callback';
 const INSTITUTIONAL_DOMAIN = '@ucaldas.edu.co';
+
+function safeParseJson<T>(value: string): T | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function extractSessionFromResponse(payload: unknown): AuthSessionData | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const source = payload as AuthSyncResponse;
+  const nestedCandidates = [source, source.data, source.user, source.profile].filter(Boolean) as AuthSyncResponse[];
+
+  for (const candidate of nestedCandidates) {
+    const token = candidate.token ?? candidate.access_token;
+    const userId = candidate.userId ?? candidate.user_id ?? candidate.profile_id ?? candidate.id;
+
+    if (token && userId) {
+      return {
+        token,
+        userId,
+      };
+    }
+  }
+
+  return null;
+}
 
 type AuthSessionNonSuccess = { type: 'cancel' | 'dismiss' | 'locked' | 'opened' };
 
@@ -41,7 +91,9 @@ export function useAuthLogin() {
   const auth0Domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
   const auth0ClientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
   const auth0Connection = process.env.EXPO_PUBLIC_AUTH0_CONNECTION ?? 'google-oauth2';
+  const auth0Audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
   const redirectScheme = process.env.EXPO_PUBLIC_AUTH0_REDIRECT_SCHEME ?? 'uniconnect2';
+  const authSyncUrl = process.env.EXPO_PUBLIC_AUTH_SYNC_URL;
   const explicitRedirectUriRaw = process.env.EXPO_PUBLIC_AUTH0_REDIRECT_URI?.trim();
   const explicitRedirectUri =
     explicitRedirectUriRaw && explicitRedirectUriRaw.toLowerCase() !== 'auto'
@@ -122,6 +174,7 @@ export function useAuthLogin() {
       extraParams: {
         connection: auth0Connection,
         prompt: 'select_account',
+        ...(auth0Audience ? { audience: auth0Audience } : {}),
       },
     },
     discovery
@@ -201,8 +254,13 @@ export function useAuthLogin() {
         }
       );
 
+      const accessToken = tokenResponse.accessToken;
+      if (!accessToken) {
+        throw new Error('No se obtuvo un access token válido desde Auth0.');
+      }
+
       const userInfo = (await AuthSession.fetchUserInfoAsync(
-        { accessToken: tokenResponse.accessToken },
+        { accessToken },
         { userInfoEndpoint: discovery.userInfoEndpoint }
       )) as Auth0UserInfo;
 
@@ -218,11 +276,40 @@ export function useAuthLogin() {
         throw new Error(`Solo se permiten correos institucionales ${INSTITUTIONAL_DOMAIN}.`);
       }
 
-      const session = await syncAuthUser({
-        auth0_id: sub,
-        email,
-        name,
-      });
+      if (!authSyncUrl || authSyncUrl.trim().length === 0) {
+        throw new Error('Falta EXPO_PUBLIC_AUTH_SYNC_URL en .env');
+      }
+
+      let response: Response;
+      try {
+        response = await fetch(authSyncUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch {
+        throw new Error('No fue posible conectar con el backend para sincronizar la sesión.');
+      }
+
+      const rawBody = await response.text();
+      const parsedBody = safeParseJson<unknown>(rawBody);
+
+      if (response.status === 401) {
+        throw new Error('Tu sesión no fue aceptada por el servidor. Inicia sesión nuevamente.');
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Error al sincronizar usuario (${response.status}): ${rawBody || 'sin detalle'}`
+        );
+      }
+
+      const session = extractSessionFromResponse(parsedBody);
+      if (!session) {
+        throw new Error('Respuesta de auth/sync sin token o userId. Verifica el contrato del backend.');
+      }
 
       return {
         auth0Id: sub,
