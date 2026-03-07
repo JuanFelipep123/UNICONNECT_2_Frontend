@@ -56,11 +56,15 @@ export function LoginScreen() {
     
     if (user) {
       setIsRedirecting(true);
-      setSession({ userId: user.userId, token: user.token });
+      await setSession({
+        userId: user.userId,
+        token: user.token,
+        needsOnboarding: user.needsOnboarding,
+      });
       
       // Usar requestAnimationFrame en lugar de setTimeout (más confiable)
       requestAnimationFrame(() => {
-        router.replace('/(tabs)');
+        router.replace((user.needsOnboarding ? '/(onboarding)/welcome' : '/(tabs)') as any);
       });
     } else {
       setIsRedirecting(false);

@@ -38,9 +38,12 @@ function extractSessionFromResponse(payload: unknown): AuthSession | null {
     const token = candidate.token ?? candidate.access_token;
     const userId =
       candidate.userId ?? candidate.user_id ?? candidate.profile_id ?? candidate.id;
+    const rawNeedsOnboarding = candidate.needsOnboarding ?? candidate.needs_onboarding;
+    const needsOnboarding =
+      typeof rawNeedsOnboarding === 'boolean' ? rawNeedsOnboarding : false;
 
     if (token && userId) {
-      return { token, userId };
+      return { token, userId, needsOnboarding };
     }
   }
 
