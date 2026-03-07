@@ -1,14 +1,17 @@
 import { FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '../../../store/authStore';
 import { useAuthLogin } from '../hooks/useAuthLogin';
@@ -28,57 +31,83 @@ const LOGIN_COLORS = {
 export function LoginScreen() {
   const { canLogin, errorMessage, isLoading, handleLogin } = useAuthLogin();
   const { setSession } = useAuthStore();
+  
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Mostrar Alert nativo cuando hay error
+  useEffect(() => {
+    if (errorMessage) {
+      Alert.alert(
+        '⚠️ Error de inicio de sesión',
+        errorMessage,
+        [{ text: 'Entendido', style: 'default' }],
+        { cancelable: true }
+      );
+    }
+  }, [errorMessage]);
 
   const onPressLogin = async () => {
     const user = await handleLogin();
     if (user) {
-      await setSession({ userId: user.userId, token: user.token });
-      router.replace('/(tabs)');
+      setIsRedirecting(true); 
+      setSession({ userId: user.userId, token: user.token });
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100);
     }
   };
 
+  const showSpinner = isLoading || isRedirecting;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topSection}>
-        <View style={styles.logoCircle}>
-          <MaterialCommunityIcons name="school-outline" size={44} color={LOGIN_COLORS.gold} />
+      <ScrollView 
+        contentContainerStyle={styles.scrollViewContent}
+        scrollEnabled={true}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        <View style={styles.topSection}>
+          <View style={styles.logoCircle}>
+            <MaterialCommunityIcons name="school-outline" size={44} color={LOGIN_COLORS.gold} />
+          </View>
+          <Text style={styles.brandTitle}>UniConnect</Text>
+          <Text style={styles.brandSubtitle}>Conecta con tu comunidad universitaria</Text>
         </View>
-        <Text style={styles.brandTitle}>UniConnect</Text>
-        <Text style={styles.brandSubtitle}>Conecta con tu comunidad universitaria</Text>
-      </View>
 
-      <View style={styles.bottomCard}>
-        <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
-        <Text style={styles.welcomeSubtitle}>
-          Inicia sesión con tu correo institucional para acceder a la plataforma.
-        </Text>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.googleButton,
-            (pressed || isLoading || !canLogin) && styles.googleButtonPressed,
-          ]}
-          onPress={onPressLogin}
-          disabled={!canLogin}>
-          {isLoading ? (
-            <ActivityIndicator color={LOGIN_COLORS.white} />
-          ) : (
-            <View style={styles.googleButtonContent}>
-              <FontAwesome name="google" size={18} color={LOGIN_COLORS.white} />
-              <Text style={styles.googleButtonText}>Continuar con Google</Text>
-            </View>
-          )}
-        </Pressable>
-
-        <View style={styles.validationRow}>
-          <Ionicons name="information-circle-outline" size={14} color={LOGIN_COLORS.warning} />
-          <Text style={styles.validationText}>
-            Solo correos <Text style={styles.validationDomain}>@ucaldas.edu.co</Text>
+        <View style={styles.bottomCard}>
+          <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
+          <Text style={styles.welcomeSubtitle}>
+            Inicia sesión con tu correo institucional para acceder a la plataforma.
           </Text>
-        </View>
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-      </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.googleButton,
+              (pressed || showSpinner || !canLogin) && styles.googleButtonPressed,
+            ]}
+            onPress={onPressLogin}
+            disabled={!canLogin || showSpinner}>
+            {showSpinner ? (
+              <View style={styles.spinnerContainer}>
+                <ActivityIndicator color={LOGIN_COLORS.white} size="large" />
+              </View>
+            ) : (
+              <View style={styles.googleButtonContent}>
+                <FontAwesome name="google" size={18} color={LOGIN_COLORS.white} />
+                <Text style={styles.googleButtonText}>Continuar con Google</Text>
+              </View>
+            )}
+          </Pressable>
+
+          <View style={styles.validationRow}>
+            <Ionicons name="information-circle-outline" size={14} color={LOGIN_COLORS.warning} />
+            <Text style={styles.validationText}>
+              Solo correos <Text style={styles.validationDomain}>@ucaldas.edu.co</Text>
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -88,11 +117,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: LOGIN_COLORS.background,
   },
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+  },
   topSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   logoCircle: {
     width: 120,
@@ -115,13 +149,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bottomCard: {
-    minHeight: '44%',
     backgroundColor: LOGIN_COLORS.card,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
+    paddingTop: 32,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 32,
+    width: '100%',
   },
   welcomeTitle: {
     fontSize: 34,
@@ -143,7 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: LOGIN_COLORS.darkButton,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   googleButtonPressed: {
     opacity: 0.75,
@@ -152,6 +186,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  spinnerContainer: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   googleButtonText: {
     color: LOGIN_COLORS.white,
@@ -163,6 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    marginTop: 8,
   },
   validationText: {
     color: LOGIN_COLORS.muted,
@@ -171,11 +211,5 @@ const styles = StyleSheet.create({
   validationDomain: {
     color: LOGIN_COLORS.warning,
     fontWeight: '700',
-  },
-  errorText: {
-    marginTop: 12,
-    color: LOGIN_COLORS.error,
-    textAlign: 'center',
-    fontSize: 13,
   },
 });

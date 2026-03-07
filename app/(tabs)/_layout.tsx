@@ -1,41 +1,82 @@
-import { router, Tabs } from 'expo-router';
-import React, { useCallback, useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs, useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { Alert, Platform, Pressable, StyleSheet } from 'react-native';
 
-import { Colors } from '@/constants/Colors';
 import { HapticTab } from '@/src/components/HapticTab';
 import { IconSymbol } from '@/src/components/ui/IconSymbol';
 import { useAuthStore } from '@/src/store/authStore';
 
 export default function TabLayout() {
-  const colorScheme = 'light';
-  const { clearSession, token, userId } = useAuthStore();
+  const { token, clearSession } = useAuthStore();
+  const router = useRouter();
 
-  useEffect(() => {
-    if (!token || !userId) {
-      router.replace('/');
-    }
-  }, [token, userId]);
+  // 🛑 EL GUARDIÁN INTELIGENTE
+  // Solo se ejecuta si esta pantalla está ACTIVA y VISIBLE
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) {
+        console.log('[TabsLayout] Pestaña activa sin token. Echando al usuario...');
+        // Un respiro de 1ms para que React no colapse
+        const timer = setTimeout(() => {
+          router.replace('/login');
+        }, 1);
+        return () => clearTimeout(timer);
+      }
+    }, [token, router]) // Reacciona si el token cambia mientras la miras
+  );
 
-  const handleLogout = useCallback(async () => {
-    await clearSession();
-    router.replace('/');
-  }, [clearSession]);
+  // Manejador de logout con alerta de confirmación
+  const handleLogoutWithConfirmation = () => {
+    Alert.alert(
+      '¿Cerrar sesión?',
+      '¿Estás seguro de que deseas salir de tu cuenta?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Sí, salir',
+          style: 'destructive',
+          onPress: async () => {
+            // TÚ controlas la navegación directamente, sin intermediarios
+            await clearSession();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarActiveTintColor: '#00284D',
         headerShown: true,
-        headerLeftContainerStyle: styles.headerLeftContainer,
-        headerLeft: () => (
+        headerStyle: {
+          backgroundColor: '#00284D',
+        },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: {
+          fontWeight: '600',
+          fontSize: 17,
+        },
+        headerRightContainerStyle: styles.headerRightContainer,
+        headerRight: () => (
           <Pressable
-            onPress={handleLogout}
-            hitSlop={10}
-            style={({ pressed }) => [styles.logoutHeaderButton, pressed && styles.logoutHeaderButtonPressed]}>
-            <Text style={[styles.logoutHeaderText, { color: Colors[colorScheme].tint }]}>
-              Cerrar sesion
-            </Text>
+            onPress={handleLogoutWithConfirmation}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Cerrar sesión"
+            accessibilityRole="button"
+            accessibilityHint="Cierra tu sesión actual y regresa a la pantalla de inicio de sesión"
+            style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={24}
+              color="#FFFFFF"
+            />
           </Pressable>
         ),
         tabBarButton: HapticTab,
@@ -74,27 +115,22 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  headerLeftContainer: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
+  headerRightContainer: {
+    paddingRight: 16,
+    paddingLeft: 8,
     zIndex: 999,
     elevation: 10,
   },
-  logoutHeaderButton: {
-    marginLeft: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#E6F3FB',
-    zIndex: 999,
-    elevation: 10,
+  logoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Efecto visual consistente en iOS y Android
+    opacity: 1,
   },
-  logoutHeaderButtonPressed: {
-    opacity: 0.75,
-  },
-  logoutHeaderText: {
-    fontWeight: '700',
-    fontSize: 13,
+  logoutButtonPressed: {
+    opacity: 0.6,
   },
 });

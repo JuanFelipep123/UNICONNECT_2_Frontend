@@ -1,7 +1,14 @@
-import React from 'react';
+import { Redirect } from 'expo-router';
+import { useAuthStore } from '../src/store/authStore';
 
-import { LoginScreen } from '../src/features/auth/screens/LoginScreen';
+export default function Index() {
+  const { token } = useAuthStore();
 
-export default function AppLoginScreen() {
-  return <LoginScreen />;
+  // Si el usuario tiene sesión, lo mandamos directo a sus pestañas
+  if (token) {
+    return <Redirect href="/(tabs)" />;
+  }
+
+  // Si no tiene sesión, lo mandamos al login
+  return <Redirect href="/login" />;
 }

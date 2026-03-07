@@ -10,17 +10,14 @@ export default function RootLayout() {
   }, [hydrateSession]);
 
   return (
-    <Stack initialRouteName="index">
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-      <Stack.Screen name="expo-auth-session" options={{ headerShown: false }} />
-      <Stack.Screen 
-        name="profile" 
-        options={{ headerShown: false }} 
-      />
-      {/* otras pantallas */}
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* 🛑 CAMBIAMOS "index" por "login" */}
+      <Stack.Screen name="login" /> 
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth/callback" />
+      <Stack.Screen name="expo-auth-session" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }
-
