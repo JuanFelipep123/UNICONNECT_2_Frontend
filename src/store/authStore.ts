@@ -1,20 +1,28 @@
+import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
+
+const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_USER_ID_KEY = 'auth_user_id';
 
 interface AuthState {
   userId: string | null;
   token: string | null;
   needsCompleteProfile: boolean;
+  isSessionCleared: boolean;
   setUserId: (id: string) => void;
   setToken: (token: string) => void;
+  setSession: (session: { userId: string; token: string }) => Promise<void>;
   setNeedsCompleteProfile: (value: boolean) => void;
   markProfileAsComplete: () => void;
-  initializeFromEnv: () => void;
+  hydrateSession: () => Promise<void>;
+  clearSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   userId: null,
   token: null,
   needsCompleteProfile: false,
+  isSessionCleared: false,
   
   setUserId: (id: string) => {
     set({ userId: id });
@@ -22,6 +30,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   setToken: (token: string) => {
     set({ token });
+  },
+
+  setSession: async ({ userId, token }) => {
+    set({ userId, token, isSessionCleared: false });
+    await SecureStore.setItemAsync(AUTH_USER_ID_KEY, userId);
+    await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
   },
   
   setNeedsCompleteProfile: (value: boolean) => {
@@ -32,24 +46,28 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ needsCompleteProfile: false });
   },
 
-  initializeFromEnv: () => {
-    // En Expo, las variables EXPO_PUBLIC_* se cargan en process.env
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-    
-    console.log('[authStore] Inicializando desde variables de entorno');
-    console.log('  Token disponible:', !!token);
-    console.log('  UserId disponible:', !!userId);
-    
-    if (token && userId) {
-      set({ token, userId });
-      console.log('[authStore] ✓ Credenciales cargadas exitosamente');
-      console.log('  UserId:', userId);
-      console.log('  Token (primeros 20 chars):', token.substring(0, 20) + '...');
-    } else {
-      console.error('[authStore] ✗ No se encontraron credenciales');
-      console.error('  EXPO_PUBLIC_API_TOKEN:', token);
-      console.error('  EXPO_PUBLIC_TEST_USER_ID:', userId);
+  hydrateSession: async () => {
+    if (useAuthStore.getState().isSessionCleared) {
+      console.log('[authStore] Rehidratacion omitida por cierre de sesion manual.');
+      return;
     }
+
+    const storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+    const storedUserId = await SecureStore.getItemAsync(AUTH_USER_ID_KEY);
+
+    if (storedToken && storedUserId) {
+      set({ token: storedToken, userId: storedUserId, isSessionCleared: false });
+      console.log('[authStore] ✓ Sesion restaurada desde SecureStore');
+      return;
+    }
+
+    console.log('[authStore] No existe sesion persistida. Usuario debe iniciar sesion.');
+  },
+
+  clearSession: async () => {
+    await SecureStore.deleteItemAsync(AUTH_USER_ID_KEY);
+    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    set({ userId: null, token: null, needsCompleteProfile: false, isSessionCleared: true });
+    console.log('[authStore] Sesion limpiada.');
   },
 }));

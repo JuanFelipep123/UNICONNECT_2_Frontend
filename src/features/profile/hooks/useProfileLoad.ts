@@ -4,8 +4,9 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { profileService } from '../../../services/profileService';
-import { ProfileData } from '../types/profile';
+import { useAuthStore } from '../../../store/authStore';
 import { getErrorMessage, parseError } from '../../../utils/errorHandler';
+import { ProfileData } from '../types/profile';
 
 interface UseProfileLoadReturn {
   profile: ProfileData | null;
@@ -19,12 +20,11 @@ export const useProfileLoad = (): UseProfileLoadReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async () => {
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
+  const { token, userId } = useAuthStore();
 
+  const loadProfile = useCallback(async () => {
     if (!token || !userId) {
-      setError('Faltan variables de entorno .env');
+      setError('Sesion no disponible. Inicia sesion nuevamente.');
       setLoading(false);
       return;
     }
@@ -49,14 +49,12 @@ export const useProfileLoad = (): UseProfileLoadReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token, userId]);
 
   // Cargar perfil solamente por primera vez
   useEffect(() => {
     loadProfile();
-    // Se omite loadProfile de las dependencias porque queremos ejecutar solo una vez
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadProfile]);
 
   return { profile, loading, error, loadProfile };
 };

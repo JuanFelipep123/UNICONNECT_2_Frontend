@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { profileHttpService, type Subject } from '../../../services/profileHttpService';
+import { useAuthStore } from '../../../store/authStore';
 import { useLoadAvailableSubjects } from './useLoadAvailableSubjects';
 import { useLoadProfileSubjects } from './useLoadProfileSubjects';
 import { useSubjectsManager } from './useSubjectsManager';
@@ -15,22 +16,22 @@ export const useSubjectsUpdateController = () => {
   const [removingSubjectIds, setRemovingSubjectIds] = useState<Set<string>>(new Set());
   const [addingError, setAddingError] = useState<string | null>(null);
 
-  const token = process.env.EXPO_PUBLIC_API_TOKEN || '';
-  const profileId = process.env.EXPO_PUBLIC_TEST_USER_ID || '';
+  const { token, userId } = useAuthStore();
+  const profileId = userId || '';
 
   const {
     subjects: profileSubjects,
     loading: loadingProfile,
     error: errorProfile,
     reload: reloadProfile,
-  } = useLoadProfileSubjects(profileId, token);
+  } = useLoadProfileSubjects(profileId, token || '');
 
   const {
     subjects: availableSubjects,
     loading: loadingAvailable,
     error: errorAvailable,
     reload: reloadAvailable,
-  } = useLoadAvailableSubjects(token);
+  } = useLoadAvailableSubjects(token || '');
 
   const initialSubjects = useMemo(() => {
     if (profileSubjects.length > 0) {

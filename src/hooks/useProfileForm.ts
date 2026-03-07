@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { profileService } from '../services/profileService';
+import { useState } from 'react';
 import { ProfileData, Subject } from '../features/profile/types/profile';
+import { profileService } from '../services/profileService';
+import { useAuthStore } from '../store/authStore';
 
 export const useProfileForm = () => {
+  const { token, userId } = useAuthStore();
+
   const [profile, setProfile] = useState<ProfileData>({
     id: '',
     nombre: '',
@@ -43,11 +46,8 @@ export const useProfileForm = () => {
   };
 
   const saveProfile = async (): Promise<boolean> => {
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-
     if (!token || !userId) {
-      setError("Faltan credenciales en .env");
+      setError("Sesion no disponible. Inicia sesion nuevamente.");
       return false;
     }
 

@@ -69,6 +69,12 @@ export const useLoadProfileSubjects = (
 
   // Cargar materias al montar el componente
   useEffect(() => {
+    // Early return si falta token (evita race condition en logout)
+    if (!token) {
+      console.log('[useLoadProfileSubjects] Early return: sin token');
+      setLoading(false);
+      return;
+    }
     reload();
   }, [profileId, token, reload]);
 

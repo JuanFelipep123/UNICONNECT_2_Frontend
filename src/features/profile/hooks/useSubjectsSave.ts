@@ -3,9 +3,10 @@
  * Soluciona: Manejo de errores centralizado, lógica en componente
  */
 import { useCallback, useState } from 'react';
-import { Subject } from './useSubjectsManager';
 import { profileHttpService } from '../../../services/profileHttpService';
-import { parseError, getErrorMessage } from '../../../utils/errorHandler';
+import { useAuthStore } from '../../../store/authStore';
+import { getErrorMessage, parseError } from '../../../utils/errorHandler';
+import { Subject } from './useSubjectsManager';
 
 interface UseSubjectsSaveReturn {
   saving: boolean;
@@ -17,13 +18,11 @@ interface UseSubjectsSaveReturn {
 export const useSubjectsSave = (): UseSubjectsSaveReturn => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { token, userId } = useAuthStore();
 
   const saveSubjects = useCallback(async (subjects: Subject[]): Promise<boolean> => {
-    const token = process.env.EXPO_PUBLIC_API_TOKEN;
-    const userId = process.env.EXPO_PUBLIC_TEST_USER_ID;
-
     if (!token || !userId) {
-      const errorMsg = 'Faltan credenciales en .env';
+      const errorMsg = 'Sesion no disponible. Inicia sesion nuevamente.';
       setError(errorMsg);
       return false;
     }
@@ -55,7 +54,7 @@ export const useSubjectsSave = (): UseSubjectsSaveReturn => {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [token, userId]);
 
   const clearError = useCallback(() => {
     setError(null);
