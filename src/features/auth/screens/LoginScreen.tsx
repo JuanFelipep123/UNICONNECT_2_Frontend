@@ -1,9 +1,10 @@
-import { FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -46,16 +47,25 @@ export function LoginScreen() {
     }
   }, [errorMessage]);
 
-  const onPressLogin = async () => {
+  /**
+   * Manejador del botón de login
+   * Memoizado para evitar recreaciones en cada render
+   */
+  const onPressLogin = useCallback(async () => {
     const user = await handleLogin();
+    
     if (user) {
-      setIsRedirecting(true); 
+      setIsRedirecting(true);
       setSession({ userId: user.userId, token: user.token });
-      setTimeout(() => {
+      
+      // Usar requestAnimationFrame en lugar de setTimeout (más confiable)
+      requestAnimationFrame(() => {
         router.replace('/(tabs)');
-      }, 100);
+      });
+    } else {
+      setIsRedirecting(false);
     }
-  };
+  }, [handleLogin, setSession]);
 
   const showSpinner = isLoading || isRedirecting;
 
@@ -69,7 +79,11 @@ export function LoginScreen() {
       >
         <View style={styles.topSection}>
           <View style={styles.logoCircle}>
-            <MaterialCommunityIcons name="school-outline" size={44} color={LOGIN_COLORS.gold} />
+            <Image
+              source={require('../../../../assets/images/logo-ucaldas.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.brandTitle}>UniConnect</Text>
           <Text style={styles.brandSubtitle}>Conecta con tu comunidad universitaria</Text>
@@ -129,13 +143,19 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 64,
   },
   brandTitle: {
     color: LOGIN_COLORS.white,

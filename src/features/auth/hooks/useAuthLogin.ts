@@ -1,109 +1,51 @@
+/**
+ * Hook refactorizado para el login con Auth0
+ * Responsabilidad: Coordinar el flujo de autenticación usando servicios separados
+ */
+
 import * as AuthSession from 'expo-auth-session';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-WebBrowser.maybeCompleteAuthSession();
-
-type Auth0UserInfo = {
-  email?: string;
-  name?: string;
-  sub?: string;
-};
-
-type AuthSyncResponse = {
-  token?: string;
-  access_token?: string;
-  userId?: string;
-  user_id?: string;
-  profile_id?: string;
-  id?: string;
-  data?: AuthSyncResponse;
-  user?: AuthSyncResponse;
-  profile?: AuthSyncResponse;
-};
-
-type AuthSessionData = {
-  userId: string;
-  token: string;
-};
+import { syncUserWithBackend } from '../services/authApiService';
+import { exchangeCodeForToken, executeExpoGoAuthFlow, fetchAuth0UserInfo } from '../services/authService';
+import type { AuthConfig, AuthenticatedUser, AuthError, AuthSessionResult } from '../types/auth.types';
+import { createAuthError, createConfigError, createInvalidDomainError, handleAuthSessionError } from '../utils/authErrors';
+import { isValidInstitutionalEmail, validateAuthConfig } from '../utils/authValidation';
+import { authLogger } from '../utils/logger';
 
 const AUTH_CALLBACK_PATH = 'auth/callback';
-const INSTITUTIONAL_DOMAIN = '@ucaldas.edu.co';
 
-function safeParseJson<T>(value: string): T | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
-}
-
-function extractSessionFromResponse(payload: unknown): AuthSessionData | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  const source = payload as AuthSyncResponse;
-  const nestedCandidates = [source, source.data, source.user, source.profile].filter(Boolean) as AuthSyncResponse[];
-
-  for (const candidate of nestedCandidates) {
-    const token = candidate.token ?? candidate.access_token;
-    const userId = candidate.userId ?? candidate.user_id ?? candidate.profile_id ?? candidate.id;
-
-    if (token && userId) {
-      return {
-        token,
-        userId,
-      };
-    }
-  }
-
-  return null;
-}
-
-type AuthSessionNonSuccess = { type: 'cancel' | 'dismiss' | 'locked' | 'opened' };
-
-function isValidInstitutionalEmail(email: string) {
-  return email.toLowerCase().endsWith(INSTITUTIONAL_DOMAIN);
-}
-
-function buildAuthErrorMessage(result: AuthSessionNonSuccess | { type: 'error'; error?: Error | null }) {
-  if (result.type === 'dismiss' || result.type === 'cancel') {
-    return 'No se pudo completar el retorno a la app tras el login. Verifica la Callback URL en Auth0 y usa Development Build si estas en Expo Go.';
-  }
-
-  if (result.type === 'error') {
-    return result.error?.message ?? 'Error de autenticación.';
-  }
-
-  return 'El inicio de sesión fue cancelado o falló.';
-}
-
+/**
+ * Hook principal para autenticación
+ */
 export function useAuthLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const auth0Domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
-  const auth0ClientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-  const auth0Connection = process.env.EXPO_PUBLIC_AUTH0_CONNECTION ?? 'google-oauth2';
-  const auth0Audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
-  const redirectScheme = process.env.EXPO_PUBLIC_AUTH0_REDIRECT_SCHEME ?? 'uniconnect2';
-  const authSyncUrl = process.env.EXPO_PUBLIC_AUTH_SYNC_URL;
-  const explicitRedirectUriRaw = process.env.EXPO_PUBLIC_AUTH0_REDIRECT_URI?.trim();
-  const explicitRedirectUri =
-    explicitRedirectUriRaw && explicitRedirectUriRaw.toLowerCase() !== 'auto'
-      ? explicitRedirectUriRaw
-      : undefined;
+  // Configuración de Auth0 desde variables de entorno
+  const authConfig: Partial<AuthConfig> = useMemo(
+    () => ({
+      domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
+      clientId: process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID,
+      connection: process.env.EXPO_PUBLIC_AUTH0_CONNECTION ?? 'google-oauth2',
+      audience: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE,
+      redirectScheme: process.env.EXPO_PUBLIC_AUTH0_REDIRECT_SCHEME ?? 'uniconnect2',
+      authSyncUrl: process.env.EXPO_PUBLIC_AUTH_SYNC_URL ?? '',
+      redirectUri: process.env.EXPO_PUBLIC_AUTH0_REDIRECT_URI?.trim(),
+    }),
+    []
+  );
 
-  const isExpoGo =
-    Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-    Constants.appOwnership === 'expo';
+  // Detectar si estamos en Expo Go
+  const isExpoGo = useMemo(
+    () =>
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+      Constants.appOwnership === 'expo',
+    []
+  );
 
+  // Generar el nombre del proyecto para el proxy de Expo
   const projectNameForProxy = useMemo(() => {
     const owner = Constants.expoConfig?.owner;
     const slug = Constants.expoConfig?.slug;
@@ -115,11 +57,11 @@ export function useAuthLogin() {
     return undefined;
   }, []);
 
+  // URIs para el proxy de Expo Go
   const expoProxyRedirectUri = useMemo(() => {
     if (!projectNameForProxy) {
       return undefined;
     }
-
     return `https://auth.expo.io/${projectNameForProxy}`;
   }, [projectNameForProxy]);
 
@@ -127,189 +69,152 @@ export function useAuthLogin() {
     if (!isExpoGo) {
       return undefined;
     }
-
-    // Expo proxy uses this as return target to reopen Expo Go.
     return AuthSession.makeRedirectUri({ path: 'expo-auth-session' });
   }, [isExpoGo]);
 
+  // Calcular la redirectUri final
   const redirectUri = useMemo(() => {
-    if (explicitRedirectUri) {
-      return explicitRedirectUri;
+    const explicitUri = authConfig.redirectUri;
+    
+    if (explicitUri && explicitUri.toLowerCase() !== 'auto') {
+      return explicitUri;
     }
 
     if (isExpoGo) {
-      // Expo Go requires proxy-based callback to resume app reliably.
       if (expoProxyRedirectUri) {
         return expoProxyRedirectUri;
       }
-
-      console.warn('[useAuthLogin] No se encontro owner/slug. Usando redirectUri con scheme.');
+      authLogger.warn('No se encontró owner/slug. Usando redirectUri con scheme.');
     }
 
     return AuthSession.makeRedirectUri({
-      scheme: redirectScheme,
+      scheme: authConfig.redirectScheme,
       path: AUTH_CALLBACK_PATH,
     });
-  }, [explicitRedirectUri, expoProxyRedirectUri, isExpoGo, redirectScheme]);
+  }, [authConfig.redirectUri, authConfig.redirectScheme, expoProxyRedirectUri, isExpoGo]);
 
+  // Discovery endpoints de Auth0
   const discovery = useMemo(() => {
-    if (!auth0Domain) {
+    if (!authConfig.domain) {
       return null;
     }
 
     return {
-      authorizationEndpoint: `https://${auth0Domain}/authorize`,
-      tokenEndpoint: `https://${auth0Domain}/oauth/token`,
-      userInfoEndpoint: `https://${auth0Domain}/userinfo`,
+      authorizationEndpoint: `https://${authConfig.domain}/authorize`,
+      tokenEndpoint: `https://${authConfig.domain}/oauth/token`,
+      userInfoEndpoint: `https://${authConfig.domain}/userinfo`,
     };
-  }, [auth0Domain]);
+  }, [authConfig.domain]);
 
+  // Request de autenticación
   const [request, , promptAsync] = AuthSession.useAuthRequest(
     {
-      clientId: auth0ClientId ?? '',
+      clientId: authConfig.clientId ?? '',
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
       usePKCE: true,
       scopes: ['openid', 'profile', 'email'],
       extraParams: {
-        connection: auth0Connection,
+        connection: authConfig.connection ?? 'google-oauth2',
         prompt: 'select_account',
-        ...(auth0Audience ? { audience: auth0Audience } : {}),
+        ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       },
     },
     discovery
   );
 
   useEffect(() => {
-    console.log('[useAuthLogin] redirectUri en uso:', redirectUri);
+    authLogger.info('redirectUri configurado', redirectUri);
   }, [redirectUri]);
 
-  const runExpoGoAuthFlow = useCallback(async () => {
+  /**
+   * Ejecuta el flujo de autenticación para Expo Go
+   */
+  const runExpoGoAuthFlow = useCallback(async (): Promise<AuthSessionResult> => {
     if (!expoProxyRedirectUri || !expoProxyReturnUri) {
-      throw new Error('No se pudo construir la URL de proxy de Expo. Verifica owner/slug en app.json.');
+      throw createConfigError(['owner/slug en app.json']);
     }
 
     if (!request?.url) {
-      throw new Error('La URL de autorización aún no está lista. Intenta de nuevo.');
+      throw createAuthError('CONFIG_MISSING', 'La URL de autorización aún no está lista. Intenta de nuevo.');
     }
 
-    const startParams = new URLSearchParams({
-      authUrl: request.url,
-      returnUrl: expoProxyReturnUri,
+    return executeExpoGoAuthFlow({
+      proxyRedirectUri: expoProxyRedirectUri,
+      proxyReturnUri: expoProxyReturnUri,
+      authRequestUrl: request.url,
+      parseReturnUrl: (url: string) => request.parseReturnUrl(url) as AuthSessionResult,
     });
-
-    const startUrl = `${expoProxyRedirectUri}/start?${startParams.toString()}`;
-    const browserResult = await WebBrowser.openAuthSessionAsync(startUrl, expoProxyReturnUri);
-
-    if (browserResult.type !== 'success') {
-      return { type: browserResult.type } as AuthSessionNonSuccess;
-    }
-
-    return request.parseReturnUrl(browserResult.url);
   }, [expoProxyRedirectUri, expoProxyReturnUri, request]);
 
-  const handleLogin = useCallback(async () => {
+  /**
+   * Manejador principal del login
+   */
+  const handleLogin = useCallback(async (): Promise<AuthenticatedUser | null> => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
 
-      if (!auth0Domain || !auth0ClientId) {
-        throw new Error('Faltan EXPO_PUBLIC_AUTH0_DOMAIN y/o EXPO_PUBLIC_AUTH0_CLIENT_ID en .env');
+      // Validar configuración
+      const configValidation = validateAuthConfig({
+        domain: authConfig.domain,
+        clientId: authConfig.clientId,
+        authSyncUrl: authConfig.authSyncUrl,
+      });
+
+      if (!configValidation.isValid) {
+        throw createConfigError(configValidation.missing!);
       }
 
       if (!discovery || !request) {
-        throw new Error('La configuración de Auth0 aún no está lista.');
+        throw createAuthError('CONFIG_MISSING', 'La configuración de Auth0 aún no está lista.');
       }
 
+      // Ejecutar flujo de autenticación
+      authLogger.info('Iniciando flujo de autenticación');
       const authResult = isExpoGo ? await runExpoGoAuthFlow() : await promptAsync();
 
+      // Manejar resultado
       if (authResult.type !== 'success') {
-        if (authResult.type === 'error') {
-          throw new Error(buildAuthErrorMessage({ type: 'error', error: authResult.error }));
-        }
-
-        throw new Error(buildAuthErrorMessage(authResult as AuthSessionNonSuccess));
+        throw handleAuthSessionError(authResult as AuthSessionResult);
       }
 
       const code = authResult.params.code;
       if (!code) {
-        throw new Error('No se recibió código de autorización.');
+        throw createAuthError('TOKEN_EXCHANGE_FAILED', 'No se recibió código de autorización.');
       }
 
       if (!request.codeVerifier) {
-        throw new Error('No se encontró code verifier para PKCE.');
+        throw createAuthError('TOKEN_EXCHANGE_FAILED', 'No se encontró code verifier para PKCE.');
       }
 
-      const tokenResponse = await AuthSession.exchangeCodeAsync(
-        {
-          clientId: auth0ClientId,
-          code,
-          redirectUri,
-          extraParams: {
-            code_verifier: request.codeVerifier,
-          },
-        },
-        {
-          tokenEndpoint: discovery.tokenEndpoint,
-        }
-      );
+      // Intercambiar código por token
+      const accessToken = await exchangeCodeForToken({
+        clientId: authConfig.clientId!,
+        code,
+        redirectUri,
+        codeVerifier: request.codeVerifier,
+        tokenEndpoint: discovery.tokenEndpoint,
+      });
 
-      const accessToken = tokenResponse.accessToken;
-      if (!accessToken) {
-        throw new Error('No se obtuvo un access token válido desde Auth0.');
-      }
+      // Obtener información del usuario
+      const userInfo = await fetchAuth0UserInfo(accessToken, discovery.userInfoEndpoint);
 
-      const userInfo = (await AuthSession.fetchUserInfoAsync(
-        { accessToken },
-        { userInfoEndpoint: discovery.userInfoEndpoint }
-      )) as Auth0UserInfo;
-
-      const email = userInfo.email;
-      const name = userInfo.name;
-      const sub = userInfo.sub;
+      const { email, name, sub } = userInfo;
 
       if (!email || !name || !sub) {
-        throw new Error('No fue posible obtener email, name y sub desde /userinfo.');
+        throw createAuthError('BACKEND_SYNC_FAILED', 'No fue posible obtener email, name y sub desde /userinfo.');
       }
 
+      // Validar dominio institucional
       if (!isValidInstitutionalEmail(email)) {
-        throw new Error(`Solo se permiten correos institucionales ${INSTITUTIONAL_DOMAIN}.`);
+        throw createInvalidDomainError();
       }
 
-      if (!authSyncUrl || authSyncUrl.trim().length === 0) {
-        throw new Error('Falta EXPO_PUBLIC_AUTH_SYNC_URL en .env');
-      }
+      // Sincronizar con backend
+      const session = await syncUserWithBackend(authConfig.authSyncUrl!, accessToken);
 
-      let response: Response;
-      try {
-        response = await fetch(authSyncUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      } catch {
-        throw new Error('No fue posible conectar con el backend para sincronizar la sesión.');
-      }
-
-      const rawBody = await response.text();
-      const parsedBody = safeParseJson<unknown>(rawBody);
-
-      if (response.status === 401) {
-        throw new Error('Tu sesión no fue aceptada por el servidor. Inicia sesión nuevamente.');
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          `Error al sincronizar usuario (${response.status}): ${rawBody || 'sin detalle'}`
-        );
-      }
-
-      const session = extractSessionFromResponse(parsedBody);
-      if (!session) {
-        throw new Error('Respuesta de auth/sync sin token o userId. Verifica el contrato del backend.');
-      }
+      authLogger.info('Login exitoso');
 
       return {
         auth0Id: sub,
@@ -319,16 +224,40 @@ export function useAuthLogin() {
         token: session.token,
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Ocurrió un error en el inicio de sesión.';
-      setErrorMessage(message);
+      const authError = error as AuthError;
+      
+      // Si el usuario cancela voluntariamente, solo volver al estado inicial
+      if (authError.type === 'AUTH_CANCELLED') {
+        authLogger.info('Login cancelado por el usuario');
+        return null; // No mostrar mensaje de error, solo retornar al estado inicial
+      }
+      
+      // Para errores de validación de dominio, mostrar warning (no error rojo)
+      if (authError.type === 'INVALID_DOMAIN') {
+        authLogger.warn('Validación de dominio', authError.message);
+      } else {
+        // Errores de sistema - sí mostrar en LogBox
+        authLogger.error('Error en el login', error);
+      }
+
+      // Construir mensaje de error para mostrar al usuario
+      let errorMsg: string;
+
+      if (authError.type) {
+        errorMsg = authError.message;
+      } else if (error instanceof Error) {
+        errorMsg = error.message;
+      } else {
+        errorMsg = 'Ocurrió un error en el inicio de sesión.';
+      }
+
+      setErrorMessage(errorMsg);
       return null;
     } finally {
       setIsLoading(false);
     }
   }, [
-    auth0ClientId,
-    auth0Domain,
+    authConfig,
     discovery,
     isExpoGo,
     promptAsync,
