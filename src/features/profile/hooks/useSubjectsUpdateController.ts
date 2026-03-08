@@ -27,7 +27,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     reload: reloadProfile,
   } = useLoadProfileSubjects(profileId, token || '');
 
-  const onboardingCareer = useMemo(
+  const selectedCareer = useMemo(
     () => (typeof params.career === 'string' ? params.career : '').trim(),
     [params.career]
   );
@@ -38,25 +38,25 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     error: errorAvailable,
     reload: reloadAvailable,
   } = useLoadAvailableSubjects(token || '', {
-    career: isOnboarding && onboardingCareer ? onboardingCareer : undefined,
-    program: isOnboarding && onboardingCareer ? onboardingCareer : undefined,
-    limit: isOnboarding ? 100 : undefined,
+    career: selectedCareer || undefined,
+    program: selectedCareer || undefined,
+    limit: 100,
   });
 
   const availableSubjectsByCareer = useMemo(() => {
-    if (isOnboarding && !onboardingCareer) {
+    if (!selectedCareer) {
       return [];
     }
 
     return availableSubjects;
-  }, [availableSubjects, isOnboarding, onboardingCareer]);
+  }, [availableSubjects, selectedCareer]);
 
-  const onboardingEmptySuggestionMessage = useMemo(() => {
-    if (!isOnboarding) {
-      return 'Todas las materias estan agregadas';
-    }
+  const emptySuggestionMessage = useMemo(() => {
+    if (!selectedCareer) {
+      if (!isOnboarding) {
+        return 'No se pudo identificar tu carrera de perfil.';
+      }
 
-    if (!onboardingCareer) {
       return 'No se pudo identificar tu carrera. Regresa al paso anterior e intentalo de nuevo.';
     }
 
@@ -65,7 +65,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     }
 
     return 'Todas las materias estan agregadas';
-  }, [availableSubjectsByCareer.length, isOnboarding, onboardingCareer]);
+  }, [availableSubjectsByCareer.length, isOnboarding, selectedCareer]);
 
   const initialSubjects = useMemo(() => {
     if (profileSubjects.length > 0) {
@@ -199,17 +199,17 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
   );
 
   const handleSave = useCallback(async () => {
-    if (!isOnboarding) {
-      router.back();
-      return;
-    }
-
     if (currentSubjects.length === 0) {
       setAddingError('Debes agregar al menos una materia para continuar.');
       return;
     }
 
     setAddingError(null);
+
+    if (!isOnboarding) {
+      router.back();
+      return;
+    }
 
     if (!token) {
       router.replace('/login');
@@ -245,7 +245,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     filteredSubjects,
     searchQuery,
     setSearchQuery,
-    onboardingEmptySuggestionMessage,
+    emptySuggestionMessage,
     addingSubjectIds,
     removingSubjectIds,
     addingError,

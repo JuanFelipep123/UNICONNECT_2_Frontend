@@ -26,7 +26,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
     filteredSubjects,
     searchQuery,
     setSearchQuery,
-    onboardingEmptySuggestionMessage,
+    emptySuggestionMessage,
     addingSubjectIds,
     removingSubjectIds,
     addingError,
@@ -139,7 +139,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
               currentSubjects={currentSubjects}
               filteredSubjects={filteredSubjects}
               searchQuery={searchQuery}
-              emptySuggestionMessage={onboardingEmptySuggestionMessage}
+              emptySuggestionMessage={emptySuggestionMessage}
               onSearchQueryChange={setSearchQuery}
               addingSubjectIds={addingSubjectIds}
               removingSubjectIds={removingSubjectIds}
@@ -167,13 +167,15 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
                 onSearchQueryChange={setSearchQuery}
                 addingSubjectIds={addingSubjectIds}
                 onAddSubject={handleAddSubject}
+                emptySuggestionMessage={emptySuggestionMessage}
+                inlineErrorMessage={addingError}
+                onClearInlineError={() => setAddingError(null)}
                 isOnboarding={false}
               />
             </>
           )}
 
           {savingError && <ErrorBanner message={savingError} onClose={clearError} />}
-          {!isOnboarding && addingError && <ErrorBanner message={addingError} onClose={() => setAddingError(null)} />}
         </ScrollView>
       )}
 

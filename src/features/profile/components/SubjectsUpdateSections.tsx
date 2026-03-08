@@ -148,9 +148,12 @@ interface AvailableSubjectsSectionProps {
   colors: ThemeColors;
   filteredSubjects: Subject[];
   searchQuery: string;
+  emptySuggestionMessage?: string;
   onSearchQueryChange: (query: string) => void;
   addingSubjectIds: Set<string>;
   onAddSubject: (subject: Subject) => void;
+  inlineErrorMessage?: string | null;
+  onClearInlineError?: () => void;
   isOnboarding?: boolean;
 }
 
@@ -159,9 +162,12 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
     colors,
     filteredSubjects,
     searchQuery,
+    emptySuggestionMessage,
     onSearchQueryChange,
     addingSubjectIds,
     onAddSubject,
+    inlineErrorMessage,
+    onClearInlineError,
     isOnboarding = false,
   }) => {
     return (
@@ -186,10 +192,14 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
           />
         </View>
 
+        {inlineErrorMessage ? (
+          <ErrorBanner message={inlineErrorMessage} onClose={onClearInlineError || (() => undefined)} />
+        ) : null}
+
         <View style={styles.subjectsList}>
           {filteredSubjects.length === 0 ? (
             <Text style={styles.noResultsText}>
-              {searchQuery ? 'No se encontraron materias' : 'Todas las materias están agregadas'}
+              {searchQuery ? 'No se encontraron materias' : (emptySuggestionMessage || 'Todas las materias estan agregadas')}
             </Text>
           ) : (
             <FlatList

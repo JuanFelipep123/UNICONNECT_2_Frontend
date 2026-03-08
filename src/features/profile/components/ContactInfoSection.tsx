@@ -10,6 +10,7 @@ import {
 interface ContactInfoSectionProps {
   phone: string;
   onPhoneChange: (value: string) => void;
+  phoneError?: string | null;
 }
 
 const colors = {
@@ -21,7 +22,7 @@ const colors = {
 };
 
 export const ContactInfoSection = memo<ContactInfoSectionProps>(
-  ({ phone, onPhoneChange }) => {
+  ({ phone, onPhoneChange, phoneError }) => {
     // Memoizar el handler de cambio de teléfono
     const handlePhoneChange = useCallback((text: string) => {
       const onlyNumbers = text.replace(/\D/g, '');
@@ -55,6 +56,7 @@ export const ContactInfoSection = memo<ContactInfoSectionProps>(
               style={styles.input}
             />
           </View>
+          {phoneError ? <Text style={styles.fieldError}>{phoneError}</Text> : null}
         </View>
       </View>
     );
@@ -103,5 +105,12 @@ const styles = StyleSheet.create({
     height: '100%',
     fontSize: 15,
     color: '#1E293B',
+  },
+  fieldError: {
+    marginTop: 6,
+    marginLeft: 4,
+    color: '#B42318',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

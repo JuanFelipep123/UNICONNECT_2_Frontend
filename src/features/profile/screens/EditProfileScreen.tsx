@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -29,6 +29,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { userId, token } = useAuthStore();
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Memoizar datos iniciales para evitar recomputación
   const initialData = useMemo(() => {
@@ -79,6 +80,21 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
 
   // Separar lógica de manejo de guardado
   const handleSave = useCallback(async () => {
+    const normalizedPhone = (profile.phone_number || '').trim();
+    const phoneDigits = normalizedPhone.replace(/\D/g, '').length;
+
+    if (!normalizedPhone) {
+      setPhoneError('Debes ingresar un numero de contacto.');
+      return;
+    }
+
+    if (phoneDigits < 10) {
+      setPhoneError('El numero debe contener al menos 10 digitos.');
+      return;
+    }
+
+    setPhoneError(null);
+
     const success = await saveProfile();
     if (success) {
       Alert.alert('¡Éxito!', 'Información actualizada correctamente');
@@ -92,7 +108,14 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
       const errorMessage = getErrorMessage(appError);
       Alert.alert('Error', errorMessage);
     }
-  }, [saveProfile, error, isOnboarding, router]);
+  }, [saveProfile, error, isOnboarding, profile.phone_number, router]);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    updatePhone(value);
+    if (phoneError) {
+      setPhoneError(null);
+    }
+  }, [phoneError, updatePhone]);
 
   if (loading && !profile.name) {
     return (
@@ -155,7 +178,8 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
             <View style={styles.section}>
               <ContactInfoSection
                 phone={profile.phone_number || ''}
-                onPhoneChange={updatePhone}
+                onPhoneChange={handlePhoneChange}
+                phoneError={phoneError}
               />
             </View>
 
@@ -171,6 +195,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
                       pathname: '/profile/subjects-update',
                       params: { 
                         initialSubjects: JSON.stringify(profileSubjects),
+                        career: profile.career || '',
                         isEditing: 'true'
                       }
                     } as any);

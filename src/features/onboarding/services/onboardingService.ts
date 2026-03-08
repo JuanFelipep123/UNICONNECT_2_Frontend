@@ -85,6 +85,39 @@ interface OnboardingStatusCandidate {
   result?: OnboardingStatusCandidate;
 }
 
+interface OnboardingProgramRecord {
+  name?: string;
+}
+
+interface OnboardingProgramsCandidate {
+  data?: OnboardingProgramRecord[];
+  programs?: OnboardingProgramRecord[];
+  result?: OnboardingProgramRecord[];
+  results?: OnboardingProgramRecord[];
+  subjects?: OnboardingProgramRecord[];
+}
+
+function extractPrograms(payload: unknown): OnboardingProgramRecord[] {
+  if (Array.isArray(payload)) {
+    return payload as OnboardingProgramRecord[];
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const source = payload as OnboardingProgramsCandidate;
+  const candidates = [source.data, source.programs, source.result, source.results, source.subjects];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+
+  return [];
+}
+
 function extractNeedsOnboarding(payload: unknown): boolean | null {
   if (!payload || typeof payload !== 'object') {
     return null;
@@ -195,7 +228,7 @@ export async function getOnboardingPrograms(
   }
 
   const bodyText = await response.text();
-  const parsedBody = parseJsonBody(bodyText) as { data?: Array<{ name?: string }> };
+  const parsedBody = parseJsonBody(bodyText);
 
   if (!response.ok) {
     throw new OnboardingApiError(
@@ -205,7 +238,7 @@ export async function getOnboardingPrograms(
     );
   }
 
-  const data = Array.isArray(parsedBody.data) ? parsedBody.data : [];
+  const data = extractPrograms(parsedBody);
 
   return data
     .map((item) => ({ name: item?.name?.trim() || '' }))
