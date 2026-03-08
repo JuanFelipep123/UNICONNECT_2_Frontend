@@ -1,10 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 interface SubjectsSectionProps {
@@ -31,7 +31,7 @@ export const SubjectsSection = memo<SubjectsSectionProps>(
           <TouchableOpacity onPress={onAddSubject} style={styles.addButton}>
             <MaterialIcons name="add-circle-outline" size={22} color={colors.gold} />
             <Text style={[styles.addButtonText, { color: colors.gold }]}>
-              Añadir
+              Añadir materia
             </Text>
           </TouchableOpacity>
         </View>

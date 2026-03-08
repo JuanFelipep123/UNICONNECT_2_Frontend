@@ -21,6 +21,39 @@ function safeParseJson<T>(value: string): T | null {
   }
 }
 
+function stripHtml(value: string): string {
+  return value
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function resolveFriendlyBackendError(status: number, rawBody: string): string {
+  const body = rawBody || '';
+  const normalized = body.toLowerCase();
+
+  if (status === 502 && (normalized.includes('ngrok') || normalized.includes('err_ngrok_8012'))) {
+    return 'No se pudo conectar con el backend (ngrok 502). Verifica que el servidor API este encendido en el puerto configurado y que el tunel de ngrok siga activo.';
+  }
+
+  if (status === 502) {
+    return 'El backend no esta respondiendo correctamente (HTTP 502). Intenta nuevamente en unos segundos.';
+  }
+
+  if (status >= 500) {
+    return `El backend reporto un error interno (HTTP ${status}).`;
+  }
+
+  const plainText = stripHtml(body);
+  if (plainText.length > 0 && plainText.length < 300) {
+    return `Error al sincronizar usuario (${status}): ${plainText}`;
+  }
+
+  return `Error al sincronizar usuario (${status}).`;
+}
+
 /**
  * Extrae la sesión del usuario desde la respuesta del backend
  */
@@ -83,9 +116,7 @@ export async function syncUserWithBackend(
 
   if (!response.ok) {
     authLogger.error(`Error del backend: ${response.status}`, rawBody);
-    throw new Error(
-      `Error al sincronizar usuario (${response.status}): ${rawBody || 'sin detalle'}`
-    );
+    throw new Error(resolveFriendlyBackendError(response.status, rawBody));
   }
 
   const session = extractSessionFromResponse(parsedBody);

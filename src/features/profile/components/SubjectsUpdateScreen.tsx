@@ -26,6 +26,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
     filteredSubjects,
     searchQuery,
     setSearchQuery,
+    onboardingEmptySuggestionMessage,
     addingSubjectIds,
     removingSubjectIds,
     addingError,
@@ -138,6 +139,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
               currentSubjects={currentSubjects}
               filteredSubjects={filteredSubjects}
               searchQuery={searchQuery}
+              emptySuggestionMessage={onboardingEmptySuggestionMessage}
               onSearchQueryChange={setSearchQuery}
               addingSubjectIds={addingSubjectIds}
               removingSubjectIds={removingSubjectIds}
@@ -189,11 +191,11 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           activeOpacity={0.85}
         >
           {saving ? (
-            <ActivityIndicator color={isOnboarding ? '#FFFFFF' : colors.gold} />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
-              {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color={colors.gold} /> : null}
-              <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: isOnboarding ? '#FFFFFF' : colors.gold }]}>
+              {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color="#FFFFFF" /> : null}
+              <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: '#FFFFFF' }]}>
                 {isOnboarding ? 'FINALIZAR REGISTRO' : 'Guardar Cambios'}
               </Text>
             </>

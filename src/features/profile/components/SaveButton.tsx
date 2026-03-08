@@ -1,10 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo } from 'react';
 import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
 } from 'react-native';
 
 interface SaveButtonProps {
@@ -16,6 +16,7 @@ interface SaveButtonProps {
 const colors = {
   primary: '#00284D',
   gold: '#C5A059',
+  white: '#FFFFFF',
 };
 
 // Memoizar para evitar re-renders innecesarios
@@ -38,8 +39,8 @@ export const SaveButton = memo<SaveButtonProps>(
           <ActivityIndicator color={colors.gold} size="small" />
         ) : (
           <>
-            <MaterialIcons name="check-circle" size={20} color={colors.gold} />
-            <Text style={[styles.text, { color: colors.gold, marginLeft: 8 }]}>
+            <MaterialIcons name="check-circle" size={20} color={colors.white} />
+            <Text style={[styles.text, { color: colors.white, marginLeft: 8 }]}>
               Guardar Perfil
             </Text>
           </>

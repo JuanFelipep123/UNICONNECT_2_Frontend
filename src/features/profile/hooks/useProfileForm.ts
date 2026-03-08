@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProfileData } from '../types/profile';
 import { useProfileSave } from './useProfileSave';
 
@@ -6,7 +6,6 @@ interface UseProfileFormReturn {
   profile: ProfileData;
   loading: boolean;
   error: string | null;
-  updateCareer: (career: string) => void;
   updateSemester: (semester: number) => void;
   updateAvatar: (uri: string) => void;
   updatePhone: (phone: string) => void;
@@ -46,10 +45,6 @@ export const useProfileForm = (
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memoizedInitialData]);
-
-  const updateCareer = useCallback((career: string) => {
-    setProfile((prev) => ({ ...prev, career }));
-  }, []);
 
   const updateSemester = useCallback((semester: number) => {
     setProfile((prev) => ({ ...prev, semester }));
@@ -92,7 +87,6 @@ export const useProfileForm = (
     loading: saving,
     error: saveError,
     updatePhone,
-    updateCareer,
     updateSemester,
     updateAvatar,
     addSubject,

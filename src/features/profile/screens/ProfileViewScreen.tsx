@@ -2,17 +2,17 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
+    useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { useAuthStore } from "../../../store/authStore";
 import { LIGHT_THEME } from "../../../theme/themeContext";
@@ -194,8 +194,8 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
           }}
           activeOpacity={0.9}
         >
-          <MaterialIcons name="edit" size={20} color={colors.gold} />
-          <Text style={[styles.editButtonText, { color: colors.gold }]}>EDITAR PERFIL</Text>
+          <MaterialIcons name="edit" size={20} color="#FFFFFF" />
+          <Text style={[styles.editButtonText, { color: '#FFFFFF' }]}>EDITAR PERFIL</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

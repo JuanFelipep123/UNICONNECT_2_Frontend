@@ -1,10 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 
 interface ContactInfoSectionProps {
@@ -36,7 +36,7 @@ export const ContactInfoSection = memo<ContactInfoSectionProps>(
 
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, { color: colors.label }]}>
-            Número Telefónico
+            Número de Teléfono
           </Text>
           <View style={styles.inputWrapper}>
             <MaterialIcons

@@ -35,9 +35,9 @@ export const SubjectItem = memo<SubjectItemProps>(({ name, department, onAdd, is
         disabled={isLoading}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isOnboarding ? '#C5A059' : '#FFFFFF'} />
+          <ActivityIndicator size="small" color="#C5A059" />
         ) : (
-          <MaterialIcons name="add" size={20} color={isOnboarding ? '#C5A059' : '#FFFFFF'} />
+          <MaterialIcons name="add" size={20} color="#C5A059" />
         )}
       </TouchableOpacity>
     </View>
@@ -89,10 +89,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#C5A059',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F2F2F2',
+    borderWidth: 1,
+    borderColor: '#ECECEC',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,

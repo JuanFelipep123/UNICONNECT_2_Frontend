@@ -10,6 +10,8 @@ export interface Subject {
   id: string;
   name: string;
   code: string;
+  career?: string;
+  carrera?: string;
   program: string;
   department?: string;
   created_at?: string;
@@ -20,6 +22,34 @@ interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+interface GetAvailableSubjectsOptions {
+  career?: string;
+  program?: string;
+  search?: string;
+  limit?: number;
+}
+
+const extractSubjectsArray = (payload: unknown): Subject[] => {
+  if (Array.isArray(payload)) {
+    return payload as Subject[];
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const record = payload as Record<string, unknown>;
+  const candidates = [record.data, record.subjects, record.result, record.results];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate as Subject[];
+    }
+  }
+
+  return [];
+};
 
 console.log('[profileHttpService] Base URL configurada:', API_BASE_URL);
 
@@ -53,12 +83,15 @@ export const profileHttpService = {
     token: string
   ): Promise<ApiResponse<ProfileData>> {
     try {
-      const payload = {
-        career: profileData.career || null,
+      const payload: Record<string, unknown> = {
         semester: profileData.semester || null,
         phone_number: profileData.phone_number || null,
         avatar_url: profileData.avatar_url || null,
       };
+
+      if (Object.prototype.hasOwnProperty.call(profileData, 'career')) {
+        payload.career = profileData.career || null;
+      }
 
       const response = await fetch(`${API_BASE_URL}/profiles/${id}`, {
         method: 'PUT',
@@ -193,9 +226,31 @@ export const profileHttpService = {
     }
   },
 
-  async getAvailableSubjects(token: string): Promise<ApiResponse<Subject[]>> {
+  async getAvailableSubjects(
+    token: string,
+    options: GetAvailableSubjectsOptions = {}
+  ): Promise<ApiResponse<Subject[]>> {
     try {
-      const url = `${API_BASE_URL}/subjects`;
+      const query = new URLSearchParams();
+
+      if (options.career?.trim()) {
+        query.append('career', options.career.trim());
+      }
+
+      if (options.program?.trim()) {
+        query.append('program', options.program.trim());
+      }
+
+      if (options.search?.trim()) {
+        query.append('search', options.search.trim());
+      }
+
+      if (typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0) {
+        query.append('limit', String(Math.floor(options.limit)));
+      }
+
+      const queryString = query.toString();
+      const url = `${API_BASE_URL}/subjects${queryString ? `?${queryString}` : ''}`;
       console.log('[getAvailableSubjects] Llamando a:', url);
       
       const response = await fetch(url, {
@@ -215,8 +270,8 @@ export const profileHttpService = {
         throw new Error(errorMsg);
       }
 
-      // Asegurar que siempre retorna un array
-      const subjects = Array.isArray(result.data) ? result.data : [];
+      // El backend puede responder con data/subjects/result o array directo.
+      const subjects = extractSubjectsArray(result);
       console.log('[getAvailableSubjects] Materias obtenidas:', subjects.length, 'items');
       return { success: true, data: subjects };
     } catch (error) {

@@ -31,10 +31,9 @@ export const useProfileSave = (): UseProfileSaveReturn => {
     setError(null);
 
     try {
-      const { career, semester, phone_number, avatar_url } = profile;
+      const { semester, phone_number, avatar_url } = profile;
 
       const datosParaBackend = {
-        career: career || null,
         semester: semester || null,
         phone_number: phone_number || null,
         avatar_url: avatar_url || null,

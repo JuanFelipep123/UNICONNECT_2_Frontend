@@ -6,6 +6,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Subject, profileHttpService } from '../../../services/profileHttpService';
 import { getErrorMessage, parseError } from '../../../utils/errorHandler';
 
+interface UseLoadAvailableSubjectsOptions {
+  career?: string;
+  program?: string;
+  search?: string;
+  limit?: number;
+}
+
 interface UseLoadAvailableSubjectsReturn {
   subjects: Subject[];
   loading: boolean;
@@ -14,7 +21,8 @@ interface UseLoadAvailableSubjectsReturn {
 }
 
 export const useLoadAvailableSubjects = (
-  token: string
+  token: string,
+  options: UseLoadAvailableSubjectsOptions = {}
 ): UseLoadAvailableSubjectsReturn => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +42,7 @@ export const useLoadAvailableSubjects = (
 
     try {
       console.log('[useLoadAvailableSubjects] Cargando materias disponibles...');
-      const response = await profileHttpService.getAvailableSubjects(token);
+      const response = await profileHttpService.getAvailableSubjects(token, options);
 
       if (response.success && response.data) {
         console.log('[useLoadAvailableSubjects] Materias disponibles cargadas:', response.data);
@@ -56,12 +64,18 @@ export const useLoadAvailableSubjects = (
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [
+    options.career,
+    options.limit,
+    options.program,
+    options.search,
+    token,
+  ]);
 
   // Cargar materias al montar el componente
   useEffect(() => {
     reload();
-  }, [token, reload]);
+  }, [reload]);
 
   return { subjects, loading, error, reload };
 };

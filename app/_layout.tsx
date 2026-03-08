@@ -1,6 +1,14 @@
 import { router, Stack, useSegments } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+    ActivityIndicator,
+    AppState,
+    AppStateStatus,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import {
     getOnboardingStatus,
     OnboardingApiError,
@@ -30,9 +38,9 @@ export default function RootLayout() {
 
     try {
       setIsCheckingOnboarding(true);
-      setOnboardingError(null);
       const status = await getOnboardingStatus(token);
       setNeedsOnboarding(status.needsOnboarding);
+      setOnboardingError(null);
       setOnboardingResolved(true);
     } catch (error) {
       if (error instanceof OnboardingApiError && [401, 403, 404].includes(error.status)) {
@@ -46,12 +54,14 @@ export default function RootLayout() {
         setOnboardingError(
           `No se pudo validar onboarding (HTTP ${error.status}). Verifica backend/ngrok e intenta nuevamente.`
         );
+        setOnboardingResolved(false);
         return;
       }
 
       setOnboardingError(
         'No se pudo validar tu estado de onboarding. Revisa tu conexion e intenta nuevamente.'
       );
+      setOnboardingResolved(false);
     } finally {
       setIsCheckingOnboarding(false);
     }
@@ -67,7 +77,7 @@ export default function RootLayout() {
   }, [hydrateSession]);
 
   useEffect(() => {
-    if (isHydrating || !token || onboardingResolved || isCheckingOnboarding) {
+    if (isHydrating || !token || onboardingResolved || isCheckingOnboarding || Boolean(onboardingError)) {
       return;
     }
 
@@ -76,9 +86,29 @@ export default function RootLayout() {
     checkOnboardingStatus,
     isCheckingOnboarding,
     isHydrating,
+    onboardingError,
     onboardingResolved,
     token,
   ]);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState !== 'active') {
+        return;
+      }
+
+      // If account/session was deleted server-side while app was backgrounded,
+      // revalidate and force local logout to prevent redirect loops.
+      if (token && onboardingResolved && !isCheckingOnboarding && !onboardingError) {
+        checkOnboardingStatus();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [checkOnboardingStatus, isCheckingOnboarding, onboardingError, onboardingResolved, token]);
 
   useEffect(() => {
     if (isHydrating) {
@@ -122,13 +152,16 @@ export default function RootLayout() {
     );
   }
 
-  if (token && !onboardingResolved && onboardingError) {
+  if (token && onboardingError) {
     return (
       <View style={styles.centeredContainer}>
         <Text style={styles.errorText}>{onboardingError}</Text>
         <Pressable
           style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
-          onPress={checkOnboardingStatus}
+          onPress={() => {
+            setOnboardingError(null);
+            checkOnboardingStatus();
+          }}
           disabled={isCheckingOnboarding}
         >
           {isCheckingOnboarding ? (
@@ -136,6 +169,16 @@ export default function RootLayout() {
           ) : (
             <Text style={styles.retryButtonText}>Reintentar</Text>
           )}
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+          onPress={async () => {
+            await clearSession();
+            router.replace('/login');
+          }}
+          disabled={isCheckingOnboarding}
+        >
+          <Text style={styles.secondaryButtonText}>Cerrar sesion</Text>
         </Pressable>
       </View>
     );
@@ -186,6 +229,25 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    minWidth: 144,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#00284D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    backgroundColor: 'transparent',
+  },
+  secondaryButtonPressed: {
+    opacity: 0.75,
+  },
+  secondaryButtonText: {
+    color: '#00284D',
     fontSize: 15,
     fontWeight: '600',
   },

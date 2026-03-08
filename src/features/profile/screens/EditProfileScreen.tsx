@@ -1,27 +1,27 @@
-import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  KeyboardAvoidingView,
-  Platform,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../../store/authStore';
+import { LIGHT_THEME } from '../../../theme/themeContext';
+import { getErrorMessage, parseError } from '../../../utils/errorHandler';
 import { AcademicInfoSection } from '../components/AcademicInfoSection';
 import { ContactInfoSection } from '../components/ContactInfoSection';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { SaveButton } from '../components/SaveButton';
 import { SubjectsSection } from '../components/SubjectsSection';
+import { useLoadProfileSubjects } from '../hooks/useLoadProfileSubjects';
 import { useProfileForm } from '../hooks/useProfileForm';
 import { useProfileLoad } from '../hooks/useProfileLoad';
-import { useLoadProfileSubjects } from '../hooks/useLoadProfileSubjects';
-import { useAuthStore } from '../../../store/authStore';
-import { getErrorMessage, parseError } from '../../../utils/errorHandler';
-import { LIGHT_THEME } from '../../../theme/themeContext';
 
 export const EditProfileScreen = ({ isOnboarding = false }) => {
   const theme = LIGHT_THEME;
@@ -44,7 +44,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     profile,
     loading,
     error,
-    updateCareer,
     updateSemester,
     updateAvatar,
     updatePhone,
@@ -105,13 +104,13 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <SafeAreaView 
         style={[styles.container, { backgroundColor: theme.background }]}
-        edges={['top', 'left', 'right']}
+        edges={['top', 'left', 'right', 'bottom']}
       >
         <Stack.Screen
           options={{
@@ -126,7 +125,10 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
           {/* ScrollView flexible que cede espacio al botón */}
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: insets.bottom > 0 ? insets.bottom + 116 : 116 },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -146,7 +148,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
               <AcademicInfoSection
                 career={profile.career || ''}
                 semester={profile.semester || 1}
-                onCareerChange={updateCareer}
                 onSemesterChange={updateSemester}
               />
             </View>
@@ -190,13 +191,16 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
           </ScrollView>
 
           {/* Botón fijo en la parte inferior - siempre visible */}
-          <View style={[
-            styles.buttonContainer, 
-            { 
-              paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 20,
-              backgroundColor: theme.background,
-            }
-          ]}>
+          <View
+            style={[
+              styles.buttonContainer,
+              {
+                paddingTop: 10,
+                paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 20,
+                backgroundColor: theme.background,
+              },
+            ]}
+          >
             <SaveButton onPress={handleSave} loading={loading} />
           </View>
         </View>
@@ -245,6 +249,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   buttonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,

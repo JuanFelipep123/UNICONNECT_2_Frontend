@@ -27,12 +27,45 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     reload: reloadProfile,
   } = useLoadProfileSubjects(profileId, token || '');
 
+  const onboardingCareer = useMemo(
+    () => (typeof params.career === 'string' ? params.career : '').trim(),
+    [params.career]
+  );
+
   const {
     subjects: availableSubjects,
     loading: loadingAvailable,
     error: errorAvailable,
     reload: reloadAvailable,
-  } = useLoadAvailableSubjects(token || '');
+  } = useLoadAvailableSubjects(token || '', {
+    career: isOnboarding && onboardingCareer ? onboardingCareer : undefined,
+    program: isOnboarding && onboardingCareer ? onboardingCareer : undefined,
+    limit: isOnboarding ? 100 : undefined,
+  });
+
+  const availableSubjectsByCareer = useMemo(() => {
+    if (isOnboarding && !onboardingCareer) {
+      return [];
+    }
+
+    return availableSubjects;
+  }, [availableSubjects, isOnboarding, onboardingCareer]);
+
+  const onboardingEmptySuggestionMessage = useMemo(() => {
+    if (!isOnboarding) {
+      return 'Todas las materias estan agregadas';
+    }
+
+    if (!onboardingCareer) {
+      return 'No se pudo identificar tu carrera. Regresa al paso anterior e intentalo de nuevo.';
+    }
+
+    if (availableSubjectsByCareer.length === 0) {
+      return 'No hay materias registradas para la carrera seleccionada.';
+    }
+
+    return 'Todas las materias estan agregadas';
+  }, [availableSubjectsByCareer.length, isOnboarding, onboardingCareer]);
 
   const initialSubjects = useMemo(() => {
     if (profileSubjects.length > 0) {
@@ -57,7 +90,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     addSubject,
     removeSubject,
     setSearchQuery,
-  } = useSubjectsManager(initialSubjects, availableSubjects);
+  } = useSubjectsManager(initialSubjects, availableSubjectsByCareer);
 
   const { saving, error: savingError, clearError } = useSubjectsSave();
 
@@ -212,6 +245,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     filteredSubjects,
     searchQuery,
     setSearchQuery,
+    onboardingEmptySuggestionMessage,
     addingSubjectIds,
     removingSubjectIds,
     addingError,

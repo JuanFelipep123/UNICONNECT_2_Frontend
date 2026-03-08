@@ -59,6 +59,9 @@ export const subjectsUpdateStyles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  currentSectionSpacing: {
+    marginTop: 14,
+  },
   sectionHeader: {
     marginBottom: 16,
   },

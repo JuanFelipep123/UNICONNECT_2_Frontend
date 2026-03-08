@@ -18,7 +18,7 @@ interface CurrentSubjectsSectionProps {
 export const CurrentSubjectsSection = memo<CurrentSubjectsSectionProps>(
   ({ colors, currentSubjects, removingSubjectIds, onRemoveSubject, isOnboarding = false }) => {
     return (
-      <View style={styles.section}>
+      <View style={[styles.section, !isOnboarding && styles.currentSectionSpacing]}>
         {!isOnboarding ? (
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.gold }]}>Mis Materias Actuales</Text>
@@ -54,6 +54,7 @@ interface OnboardingSubjectsContentProps {
   currentSubjects: Subject[];
   filteredSubjects: Subject[];
   searchQuery: string;
+  emptySuggestionMessage: string;
   onSearchQueryChange: (query: string) => void;
   addingSubjectIds: Set<string>;
   removingSubjectIds: Set<string>;
@@ -69,6 +70,7 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
     currentSubjects,
     filteredSubjects,
     searchQuery,
+    emptySuggestionMessage,
     onSearchQueryChange,
     addingSubjectIds,
     removingSubjectIds,
@@ -116,7 +118,7 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
         <View style={styles.subjectsList}>
           {filteredSubjects.length === 0 ? (
             <Text style={styles.noResultsText}>
-              {searchQuery ? 'No se encontraron materias' : 'Todas las materias estan agregadas'}
+              {searchQuery ? 'No se encontraron materias' : emptySuggestionMessage}
             </Text>
           ) : (
             <FlatList
