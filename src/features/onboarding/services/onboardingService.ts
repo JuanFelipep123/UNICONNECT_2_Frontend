@@ -2,19 +2,78 @@ import { API_BASE_URL } from '../../../config/api';
 
 const ONBOARDING_STATUS_URL = `${API_BASE_URL}/onboarding/status`;
 const ONBOARDING_COMPLETE_URL = `${API_BASE_URL}/onboarding/complete`;
+const ONBOARDING_PROGRAMS_URL = `${API_BASE_URL}/onboarding/programs`;
+const ONBOARDING_STEP_1_URL = `${API_BASE_URL}/onboarding/step-1`;
+const ONBOARDING_STEP_1_CONTACT_URL = `${API_BASE_URL}/onboarding/step-1/contact`;
+
+export interface OnboardingProgramOption {
+  name: string;
+}
+
+export interface OnboardingStepOnePayload {
+  career: string;
+  semester: number;
+  phoneNumber: string;
+}
+
+export interface OnboardingStepOneValidationErrors {
+  career?: string;
+  semester?: string;
+  phone_number?: string;
+}
+
+interface BackendErrorPayload {
+  message?: string;
+  validationErrors?: OnboardingStepOneValidationErrors;
+  validation_errors?: OnboardingStepOneValidationErrors;
+  errors?: OnboardingStepOneValidationErrors;
+  data?: BackendErrorPayload;
+}
 
 export class OnboardingApiError extends Error {
   status: number;
+  validationErrors?: OnboardingStepOneValidationErrors;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, validationErrors?: OnboardingStepOneValidationErrors) {
     super(message);
     this.name = 'OnboardingApiError';
     this.status = status;
+    this.validationErrors = validationErrors;
   }
 }
 
 interface OnboardingStatusResponse {
   needsOnboarding: boolean;
+}
+
+function parseJsonBody(bodyText: string): unknown {
+  if (!bodyText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(bodyText);
+  } catch {
+    return { message: bodyText };
+  }
+}
+
+function extractValidationErrors(payload: unknown): OnboardingStepOneValidationErrors | undefined {
+  if (!payload || typeof payload !== 'object') {
+    return undefined;
+  }
+
+  const source = payload as BackendErrorPayload;
+  return source.validationErrors ?? source.validation_errors ?? source.errors ?? source.data?.validationErrors;
+}
+
+function extractMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') {
+    return fallback;
+  }
+
+  const source = payload as BackendErrorPayload;
+  return source.message || source.data?.message || fallback;
 }
 
 interface OnboardingStatusCandidate {
@@ -69,13 +128,7 @@ export async function getOnboardingStatus(token: string): Promise<OnboardingStat
     );
   }
 
-  let parsedBody: unknown;
-
-  try {
-    parsedBody = bodyText ? JSON.parse(bodyText) : {};
-  } catch {
-    throw new Error('Respuesta inválida al consultar el estado de onboarding.');
-  }
+  const parsedBody = parseJsonBody(bodyText);
 
   const needsOnboarding = extractNeedsOnboarding(parsedBody);
 
@@ -105,9 +158,119 @@ export async function completeOnboarding(token: string, skipped: boolean): Promi
   const bodyText = await response.text();
 
   if (!response.ok) {
+    const parsedBody = parseJsonBody(bodyText);
     throw new OnboardingApiError(
-      bodyText || `No fue posible completar el onboarding (${response.status}).`,
-      response.status
+      extractMessage(parsedBody, `No fue posible completar el onboarding (${response.status}).`),
+      response.status,
+      extractValidationErrors(parsedBody)
+    );
+  }
+}
+
+export async function getOnboardingPrograms(
+  token: string,
+  search = '',
+  limit = 20
+): Promise<OnboardingProgramOption[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const query = new URLSearchParams();
+  query.append('limit', String(safeLimit));
+  if (search.trim()) {
+    query.append('search', search.trim());
+  }
+
+  const requestUrl = `${ONBOARDING_PROGRAMS_URL}?${query.toString()}`;
+
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    throw new Error('No fue posible cargar la lista de carreras.');
+  }
+
+  const bodyText = await response.text();
+  const parsedBody = parseJsonBody(bodyText) as { data?: Array<{ name?: string }> };
+
+  if (!response.ok) {
+    throw new OnboardingApiError(
+      extractMessage(parsedBody, `No fue posible consultar programas (${response.status}).`),
+      response.status,
+      extractValidationErrors(parsedBody)
+    );
+  }
+
+  const data = Array.isArray(parsedBody.data) ? parsedBody.data : [];
+
+  return data
+    .map((item) => ({ name: item?.name?.trim() || '' }))
+    .filter((item) => item.name.length > 0);
+}
+
+export async function autosaveOnboardingContact(token: string, phoneNumber: string): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(ONBOARDING_STEP_1_CONTACT_URL, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ phone_number: phoneNumber }),
+    });
+  } catch {
+    throw new Error('No fue posible guardar el contacto en este momento.');
+  }
+
+  const bodyText = await response.text();
+  const parsedBody = parseJsonBody(bodyText);
+
+  if (!response.ok) {
+    throw new OnboardingApiError(
+      extractMessage(parsedBody, `No fue posible guardar contacto (${response.status}).`),
+      response.status,
+      extractValidationErrors(parsedBody)
+    );
+  }
+}
+
+export async function submitOnboardingStepOne(
+  token: string,
+  payload: OnboardingStepOnePayload
+): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(ONBOARDING_STEP_1_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        career: payload.career,
+        semester: payload.semester,
+        phone_number: payload.phoneNumber,
+      }),
+    });
+  } catch {
+    throw new Error('No fue posible guardar el paso 1 del onboarding.');
+  }
+
+  const bodyText = await response.text();
+  const parsedBody = parseJsonBody(bodyText);
+
+  if (!response.ok) {
+    throw new OnboardingApiError(
+      extractMessage(parsedBody, `No fue posible guardar el paso 1 (${response.status}).`),
+      response.status,
+      extractValidationErrors(parsedBody)
     );
   }
 }

@@ -1,8 +1,6 @@
 import { router } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
     FlatList,
     Image,
     NativeScrollEvent,
@@ -14,9 +12,6 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { useAuthStore } from '../../../store/authStore';
-import { completeOnboarding, OnboardingApiError } from '../services/onboardingService';
 
 interface OnboardingSlide {
   id: string;
@@ -68,54 +63,21 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function OnboardingWelcomeScreen() {
-  const { token, clearSession, setNeedsOnboarding, setOnboardingResolved } = useAuthStore();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const [step, setStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isLastStep = step === SLIDES.length - 1;
   const horizontalPadding = useMemo(() => clamp(screenWidth * 0.055, 18, 24), [screenWidth]);
   const slideWidth = useMemo(() => screenWidth - horizontalPadding * 2, [horizontalPadding, screenWidth]);
   const imageHeight = useMemo(() => clamp(screenHeight * 0.48, 300, 500), [screenHeight]);
 
-  const submitOnboarding = useCallback(
-    async (skipped: boolean) => {
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
-
-      try {
-        setIsSubmitting(true);
-        await completeOnboarding(token, skipped);
-        setNeedsOnboarding(false);
-        setOnboardingResolved(true);
-        router.replace('/profile/edit-profile');
-      } catch (error) {
-        if (error instanceof OnboardingApiError && error.status === 401) {
-          await clearSession();
-          router.replace('/login');
-          return;
-        }
-
-        Alert.alert(
-          'No se pudo continuar',
-          'Ocurrio un problema al actualizar el onboarding. Intenta nuevamente.'
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [clearSession, setNeedsOnboarding, setOnboardingResolved, token]
-  );
-
   const handleSkip = () => {
-    submitOnboarding(true);
+    router.replace('/(onboarding)/complete-profile');
   };
 
   const handleFinish = () => {
-    submitOnboarding(false);
+    router.replace('/(onboarding)/complete-profile');
   };
 
   const handleMomentumEnd = useCallback(
@@ -156,7 +118,7 @@ export function OnboardingWelcomeScreen() {
             UniConnect
           </Text>
           {!isLastStep ? (
-            <Pressable disabled={isSubmitting} onPress={handleSkip}>
+            <Pressable onPress={handleSkip}>
               <Text allowFontScaling={false} style={styles.skipText}>
                 Saltar
               </Text>
@@ -198,20 +160,15 @@ export function OnboardingWelcomeScreen() {
 
           {isLastStep ? (
             <Pressable
-              disabled={isSubmitting}
               onPress={handleFinish}
               style={({ pressed }) => [
                 styles.finishButton,
-                (pressed || isSubmitting) && styles.finishButtonPressed,
+                pressed && styles.finishButtonPressed,
               ]}
             >
-              {isSubmitting ? (
-                <ActivityIndicator color="#D7A548" />
-              ) : (
-                <Text allowFontScaling={false} style={styles.finishButtonText}>
-                  Comenzar Configuracion
-                </Text>
-              )}
+              <Text allowFontScaling={false} style={styles.finishButtonText}>
+                Comenzar Configuracion
+              </Text>
             </Pressable>
           ) : (
             <Text allowFontScaling={false} style={styles.swipeHint}>

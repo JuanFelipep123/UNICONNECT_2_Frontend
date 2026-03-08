@@ -3,12 +3,13 @@ import { useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { profileHttpService, type Subject } from '../../../services/profileHttpService';
 import { useAuthStore } from '../../../store/authStore';
+import { completeOnboarding, OnboardingApiError } from '../../onboarding/services/onboardingService';
 import { useLoadAvailableSubjects } from './useLoadAvailableSubjects';
 import { useLoadProfileSubjects } from './useLoadProfileSubjects';
 import { useSubjectsManager } from './useSubjectsManager';
 import { useSubjectsSave } from './useSubjectsSave';
 
-export const useSubjectsUpdateController = () => {
+export const useSubjectsUpdateController = (isOnboarding = false) => {
   const router = useRouter();
   const params = useLocalSearchParams();
 
@@ -16,7 +17,7 @@ export const useSubjectsUpdateController = () => {
   const [removingSubjectIds, setRemovingSubjectIds] = useState<Set<string>>(new Set());
   const [addingError, setAddingError] = useState<string | null>(null);
 
-  const { token, userId } = useAuthStore();
+  const { token, userId, setNeedsOnboarding, setOnboardingResolved, clearSession } = useAuthStore();
   const profileId = userId || '';
 
   const {
@@ -61,8 +62,24 @@ export const useSubjectsUpdateController = () => {
   const { saving, error: savingError, clearError } = useSubjectsSave();
 
   const handleGoBack = useCallback(() => {
+    if (isOnboarding) {
+      const career = typeof params.career === 'string' ? params.career : '';
+      const semester = typeof params.semester === 'string' ? params.semester : '';
+      const phoneNumber = typeof params.phoneNumber === 'string' ? params.phoneNumber : '';
+
+      router.replace({
+        pathname: '/(onboarding)/complete-profile',
+        params: {
+          career,
+          semester,
+          phoneNumber,
+        },
+      } as any);
+      return;
+    }
+
     router.back();
-  }, [router]);
+  }, [isOnboarding, params.career, params.phoneNumber, params.semester, router]);
 
   const handleRetry = useCallback(async () => {
     console.log('[SubjectsUpdateScreen] Reintentando carga...');
@@ -149,8 +166,46 @@ export const useSubjectsUpdateController = () => {
   );
 
   const handleSave = useCallback(async () => {
-    router.back();
-  }, [router]);
+    if (!isOnboarding) {
+      router.back();
+      return;
+    }
+
+    if (currentSubjects.length === 0) {
+      setAddingError('Debes agregar al menos una materia para continuar.');
+      return;
+    }
+
+    setAddingError(null);
+
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+
+    try {
+      await completeOnboarding(token, false);
+      setNeedsOnboarding(false);
+      setOnboardingResolved(true);
+      router.replace('/(tabs)');
+    } catch (error) {
+      if (error instanceof OnboardingApiError && error.status === 401) {
+        await clearSession();
+        router.replace('/login');
+        return;
+      }
+
+      Alert.alert('No se pudo finalizar', 'Se guardaron materias, pero no se pudo cerrar onboarding.');
+    }
+  }, [
+    clearSession,
+    currentSubjects.length,
+    isOnboarding,
+    router,
+    setNeedsOnboarding,
+    setOnboardingResolved,
+    token,
+  ]);
 
   return {
     currentSubjects,
