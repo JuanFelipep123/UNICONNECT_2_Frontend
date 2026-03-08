@@ -107,7 +107,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
           semester,
           phoneNumber,
         },
-      } as any);
+      });
       return;
     }
 

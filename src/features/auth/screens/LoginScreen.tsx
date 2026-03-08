@@ -2,15 +2,15 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -64,7 +64,7 @@ export function LoginScreen() {
       
       // Usar requestAnimationFrame en lugar de setTimeout (más confiable)
       requestAnimationFrame(() => {
-        router.replace((user.needsOnboarding ? '/(onboarding)/welcome' : '/(tabs)') as any);
+        router.replace(user.needsOnboarding ? '/(onboarding)/welcome' : '/(tabs)');
       });
     } else {
       setIsRedirecting(false);

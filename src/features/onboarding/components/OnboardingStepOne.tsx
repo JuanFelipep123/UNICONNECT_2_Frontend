@@ -2,27 +2,27 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '../../../store/authStore';
 import {
-    autosaveOnboardingContact,
-    getOnboardingPrograms,
-    OnboardingApiError,
-    OnboardingStepOneValidationErrors,
-    submitOnboardingStepOne,
-    type OnboardingProgramOption,
+  autosaveOnboardingContact,
+  getOnboardingPrograms,
+  OnboardingApiError,
+  OnboardingStepOneValidationErrors,
+  submitOnboardingStepOne,
+  type OnboardingProgramOption,
 } from '../services/onboardingService';
 import { onboardingStepOneStyles as styles } from './onboardingStepOneStyles';
 
@@ -156,7 +156,7 @@ export function OnboardingStepOne() {
           semester: String(semester),
           phoneNumber: normalizedPhone,
         },
-      } as any);
+      });
     } catch (error) {
       if (error instanceof OnboardingApiError) {
         if (error.status === 401) {

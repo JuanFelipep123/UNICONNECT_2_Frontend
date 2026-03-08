@@ -17,11 +17,7 @@ export default function TabLayout() {
     useCallback(() => {
       if (!token) {
         console.log('[TabsLayout] Pestaña activa sin token. Echando al usuario...');
-        // Un respiro de 1ms para que React no colapse
-        const timer = setTimeout(() => {
-          router.replace('/login');
-        }, 1);
-        return () => clearTimeout(timer);
+        router.replace('/login');
       }
     }, [token, router]) // Reacciona si el token cambia mientras la miras
   );

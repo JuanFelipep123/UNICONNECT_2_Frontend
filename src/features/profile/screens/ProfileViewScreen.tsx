@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
     ActivityIndicator,
     Image,
@@ -55,13 +55,10 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   );
 
   // Usar datos pasados por props si están disponibles, de lo contrario usar los cargados
-  const displayProfile = useMemo(() => {
-    const data = profileData || profile;
-    return data;
-  }, [profileData, profile]);
+  const displayProfile = profileData || profile;
 
-  // Log de materias cargadas
-  useMemo(() => {
+  // Logs de depuración al cambiar materias
+  useEffect(() => {
     if (profileSubjects.length > 0) {
       console.log(
         "[ProfileViewScreen] Materias cargadas del backend:",

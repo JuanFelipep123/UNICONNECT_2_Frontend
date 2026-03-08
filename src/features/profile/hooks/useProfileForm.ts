@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ProfileData } from '../types/profile';
 import { useProfileSave } from './useProfileSave';
 
@@ -34,17 +34,22 @@ export const useProfileForm = (
   const { saving, error: saveError, saveProfile: performSave, clearError } =
     useProfileSave();
 
-  const memoizedInitialData = useMemo(() => initialData, [initialData?.id]);
-
   useEffect(() => {
-    if (memoizedInitialData && memoizedInitialData.id !== profile.id) {
-      setProfile({
-        ...memoizedInitialData,
-        materias: memoizedInitialData.materias || [],
-      });
+    if (!initialData) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [memoizedInitialData]);
+
+    setProfile((prev) => {
+      if (initialData.id === prev.id) {
+        return prev;
+      }
+
+      return {
+        ...initialData,
+        materias: initialData.materias || [],
+      };
+    });
+  }, [initialData]);
 
   const updateSemester = useCallback((semester: number) => {
     setProfile((prev) => ({ ...prev, semester }));

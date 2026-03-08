@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -70,8 +70,8 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     }, [loadProfile, reloadSubjects, userId, token])
   );
 
-  // Log para confirmar materias
-  useMemo(() => {
+  // Log solo para depuración al cambiar la lista de materias
+  useEffect(() => {
     if (profileSubjects.length > 0) {
       console.log('[EditProfileScreen] Materias cargadas del backend:', profileSubjects.length, 'items');
       console.log('[EditProfileScreen] Materias:', profileSubjects);
@@ -99,7 +99,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     if (success) {
       Alert.alert('¡Éxito!', 'Información actualizada correctamente');
       if (isOnboarding) {
-        router.replace('/(tabs)' as any);
+        router.replace('/(tabs)');
       } else {
         router.back();
       }
@@ -198,7 +198,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
                         career: profile.career || '',
                         isEditing: 'true'
                       }
-                    } as any);
+                    });
                   }}
                   onRemoveSubject={(index: number) => {
                     const subject = profileSubjects[index];

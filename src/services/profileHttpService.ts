@@ -30,6 +30,12 @@ interface GetAvailableSubjectsOptions {
   limit?: number;
 }
 
+type ReactNativeUploadFile = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
 const extractSubjectsArray = (payload: unknown): Subject[] => {
   if (Array.isArray(payload)) {
     return payload as Subject[];
@@ -142,8 +148,13 @@ export const profileHttpService = {
   async uploadAvatar(id: string, uri: string, token: string): Promise<ApiResponse<{ url: string }>> {
     try {
       const formData = new FormData();
-      // @ts-ignore
-      formData.append('file', { uri, type: 'image/jpeg', name: `avatar_${id}.jpg` });
+      // RN env allows file-like objects for FormData though DOM typings expect Blob.
+      const file: ReactNativeUploadFile = {
+        uri,
+        type: 'image/jpeg',
+        name: `avatar_${id}.jpg`,
+      };
+      formData.append('file', file as unknown as Blob);
 
       const response = await fetch(`${API_BASE_URL}/profiles/${id}/avatar`, {
         method: 'POST',
