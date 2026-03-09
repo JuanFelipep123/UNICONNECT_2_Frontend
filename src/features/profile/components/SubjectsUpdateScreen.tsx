@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LIGHT_THEME } from '../../../theme/themeContext';
@@ -16,7 +16,7 @@ import {
     ErrorBanner,
     OnboardingSubjectsContent,
 } from './SubjectsUpdateSections';
-import { subjectsUpdateStyles as styles } from './subjectsUpdateStyles';
+import { createSubjectsUpdateStyles } from './subjectsUpdateStyles';
 
 interface SubjectsUpdateScreenProps {
   isOnboarding?: boolean;
@@ -25,6 +25,7 @@ interface SubjectsUpdateScreenProps {
 export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScreenProps) => {
   const insets = useSafeAreaInsets();
   const colors = LIGHT_THEME;
+  const styles = useMemo(() => createSubjectsUpdateStyles(colors), [colors]);
 
   const {
     currentSubjects,
@@ -55,27 +56,28 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
 
   if (loadError && !isLoading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        edges={['top']}
-      >
-        <SubjectsUpdateHeader isOnboarding={isOnboarding} title={screenTitle} onGoBack={handleGoBack} colors={colors} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <SubjectsUpdateHeader
+          isOnboarding={isOnboarding}
+          title={screenTitle}
+          onGoBack={handleGoBack}
+          colors={colors}
+          styles={styles}
+        />
         <SubjectsUpdateLoadErrorState
           loadError={loadError}
           errorProfile={errorProfile}
           errorAvailable={errorAvailable}
           onRetry={handleRetry}
           colors={colors}
+          styles={styles}
         />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={['top']}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <Stack.Screen
         options={{
           title: 'Actualizar Materias',
@@ -83,9 +85,15 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
         }}
       />
 
-      <SubjectsUpdateHeader isOnboarding={isOnboarding} title={screenTitle} onGoBack={handleGoBack} colors={colors} />
+      <SubjectsUpdateHeader
+        isOnboarding={isOnboarding}
+        title={screenTitle}
+        onGoBack={handleGoBack}
+        colors={colors}
+        styles={styles}
+      />
 
-        {isOnboarding ? <SubjectsUpdateOnboardingHero /> : null}
+        {isOnboarding ? <SubjectsUpdateOnboardingHero styles={styles} /> : null}
 
         {isLoading ? (
           <View style={[styles.container, styles.center]}>
@@ -105,6 +113,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           {isOnboarding ? (
             <OnboardingSubjectsContent
               colors={colors}
+              styles={styles}
               currentSubjects={currentSubjects}
               filteredSubjects={filteredSubjects}
               searchQuery={searchQuery}
@@ -121,6 +130,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
             <>
               <CurrentSubjectsSection
                 colors={colors}
+                styles={styles}
                 currentSubjects={currentSubjects}
                 removingSubjectIds={removingSubjectIds}
                 onRemoveSubject={handleRemoveSubject}
@@ -131,6 +141,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
 
               <AvailableSubjectsSection
                 colors={colors}
+                styles={styles}
                 filteredSubjects={filteredSubjects}
                 searchQuery={searchQuery}
                 onSearchQueryChange={setSearchQuery}
@@ -144,7 +155,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
             </>
           )}
 
-          {savingError && <ErrorBanner message={savingError} onClose={clearError} />}
+          {savingError && <ErrorBanner message={savingError} onClose={clearError} colors={colors} styles={styles} />}
           </ScrollView>
         )}
 
@@ -154,6 +165,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           saving={saving}
           onSave={handleSave}
           colors={colors}
+          styles={styles}
         />
     </SafeAreaView>
   );

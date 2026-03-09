@@ -9,6 +9,7 @@ import {
     Text,
     View,
 } from 'react-native';
+import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
 import {
     getOnboardingStatus,
     OnboardingApiError,
@@ -69,12 +70,18 @@ export default function RootLayout() {
 
   useEffect(() => {
     const runHydration = async () => {
-      await hydrateSession();
+      try {
+        await hydrateSession();
+      } catch (error) {
+        // Prevent unhandled hydration failures from terminating the app in release builds.
+        console.error('[RootLayout] Error hidratando sesion:', error);
+        await clearSession();
+      }
       setIsHydrating(false);
     };
 
     runHydration();
-  }, [hydrateSession]);
+  }, [clearSession, hydrateSession]);
 
   useEffect(() => {
     if (isHydrating || !token || onboardingResolved || isCheckingOnboarding || Boolean(onboardingError)) {
@@ -185,14 +192,16 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" /> 
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="auth/callback" />
-      <Stack.Screen name="expo-auth-session" />
-      <Stack.Screen name="profile" />
-    </Stack>
+    <AppErrorBoundary>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="auth/callback" />
+        <Stack.Screen name="expo-auth-session" />
+        <Stack.Screen name="profile" />
+      </Stack>
+    </AppErrorBoundary>
   );
 }
 

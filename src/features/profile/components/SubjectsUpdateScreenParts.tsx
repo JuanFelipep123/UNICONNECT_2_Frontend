@@ -2,16 +2,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { type ThemeColors } from '../../../theme/themeContext';
-import { subjectsUpdateStyles as styles } from './subjectsUpdateStyles';
+import { type SubjectsUpdateStyles } from './subjectsUpdateStyles';
 
 interface SubjectsUpdateHeaderProps {
   isOnboarding: boolean;
   title: string;
   onGoBack: () => void;
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
 }
 
-export const SubjectsUpdateHeader = ({ isOnboarding, title, onGoBack, colors }: SubjectsUpdateHeaderProps) => (
+export const SubjectsUpdateHeader = ({ isOnboarding, title, onGoBack, colors, styles }: SubjectsUpdateHeaderProps) => (
   <View style={[styles.header, isOnboarding ? styles.headerOnboarding : null, { backgroundColor: colors.primary }]}>
     <View style={[styles.headerLeft, isOnboarding ? styles.headerLeftOnboarding : null]}>
       <TouchableOpacity onPress={onGoBack} style={styles.backButton}>
@@ -22,7 +23,11 @@ export const SubjectsUpdateHeader = ({ isOnboarding, title, onGoBack, colors }: 
   </View>
 );
 
-export const SubjectsUpdateOnboardingHero = () => (
+interface SubjectsUpdateOnboardingHeroProps {
+  styles: SubjectsUpdateStyles;
+}
+
+export const SubjectsUpdateOnboardingHero = ({ styles }: SubjectsUpdateOnboardingHeroProps) => (
   <View style={styles.onboardingHeroContainer}>
     <Text style={styles.onboardingStepLabel}>PASO 2 DE 2</Text>
     <View style={styles.onboardingDotsRow}>
@@ -43,6 +48,7 @@ interface SubjectsUpdateLoadErrorStateProps {
   errorAvailable?: string | null;
   onRetry: () => void;
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
 }
 
 export const SubjectsUpdateLoadErrorState = ({
@@ -51,6 +57,7 @@ export const SubjectsUpdateLoadErrorState = ({
   errorAvailable,
   onRetry,
   colors,
+  styles,
 }: SubjectsUpdateLoadErrorStateProps) => (
   <View style={[styles.container, styles.center, { padding: 24 }]}>
     <MaterialIcons name="error-outline" size={48} color={colors.primary} />
@@ -69,6 +76,7 @@ interface SubjectsUpdateSaveFooterProps {
   saving: boolean;
   onSave: () => void;
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
 }
 
 export const SubjectsUpdateSaveFooter = ({
@@ -77,6 +85,7 @@ export const SubjectsUpdateSaveFooter = ({
   saving,
   onSave,
   colors,
+  styles,
 }: SubjectsUpdateSaveFooterProps) => (
   <View
     style={[

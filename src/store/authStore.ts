@@ -79,8 +79,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
-    const storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
-    const storedUserId = await SecureStore.getItemAsync(AUTH_USER_ID_KEY);
+    let storedToken: string | null = null;
+    let storedUserId: string | null = null;
+
+    try {
+      storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
+      storedUserId = await SecureStore.getItemAsync(AUTH_USER_ID_KEY);
+    } catch (error) {
+      console.error('[authStore] Error leyendo SecureStore:', error);
+      set({
+        userId: null,
+        token: null,
+        needsOnboarding: null,
+        onboardingResolved: false,
+      });
+      return;
+    }
 
     if (storedToken && storedUserId) {
       // Keep onboarding unresolved until backend status endpoint confirms it.

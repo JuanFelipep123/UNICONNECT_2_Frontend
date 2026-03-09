@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { LIGHT_THEME } from '../../../theme/themeContext';
+import { type ThemeColors } from '../../../theme/themeContext';
 
-const THEME = LIGHT_THEME;
 const UI = {
   pageBackground: '#F2F2F2',
   errorBackground: '#FEE2E2',
@@ -14,7 +13,7 @@ const UI = {
   onboardingDescription: '#3C4A5F',
 } as const;
 
-export const subjectsUpdateStyles = StyleSheet.create({
+export const createSubjectsUpdateStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: UI.pageBackground,
@@ -55,7 +54,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: THEME.surface,
+    color: colors.surface,
   },
   headerTitleOnboarding: {
     fontSize: 18,
@@ -95,7 +94,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
   },
   chipContainer: {
     marginTop: 12,
@@ -109,22 +108,22 @@ export const subjectsUpdateStyles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
     fontStyle: 'italic',
     paddingVertical: 12,
   },
   divider: {
     height: 1,
-    backgroundColor: THEME.border,
+    backgroundColor: colors.border,
     marginVertical: 8,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    backgroundColor: THEME.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: THEME.border,
+    borderColor: colors.border,
     borderRadius: 12,
     height: 48,
     marginBottom: 16,
@@ -143,7 +142,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: THEME.text,
+    color: colors.text,
   },
   searchInputOnboarding: {
     fontSize: 16,
@@ -154,7 +153,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
     textAlign: 'center',
     paddingVertical: 24,
     fontStyle: 'italic',
@@ -172,7 +171,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 13,
-    color: THEME.error,
+    color: colors.error,
   },
   buttonContainer: {
     position: 'absolute',
@@ -181,9 +180,9 @@ export const subjectsUpdateStyles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: THEME.background,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
+    borderTopColor: colors.border,
   },
   buttonContainerOnboarding: {
     backgroundColor: UI.pageBackground,
@@ -224,18 +223,18 @@ export const subjectsUpdateStyles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
   },
   errorMessage: {
     marginTop: 16,
     fontSize: 14,
-    color: THEME.error,
+    color: colors.error,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
   errorDetails: {
     fontSize: 12,
-    color: THEME.label,
+    color: colors.label,
     textAlign: 'center',
     paddingHorizontal: 16,
     fontStyle: 'italic',
@@ -249,7 +248,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: THEME.surface,
+    color: colors.surface,
   },
   onboardingHeroContainer: {
     paddingHorizontal: 24,
@@ -284,10 +283,10 @@ export const subjectsUpdateStyles = StyleSheet.create({
     borderRadius: 5,
   },
   onboardingDotActive: {
-    backgroundColor: THEME.gold,
+    backgroundColor: colors.gold,
   },
   onboardingDotInactive: {
-    backgroundColor: THEME.border,
+    backgroundColor: colors.border,
   },
   onboardingDescription: {
     color: UI.onboardingDescription,
@@ -297,3 +296,5 @@ export const subjectsUpdateStyles = StyleSheet.create({
     marginTop: 22,
   },
 });
+
+export type SubjectsUpdateStyles = ReturnType<typeof createSubjectsUpdateStyles>;

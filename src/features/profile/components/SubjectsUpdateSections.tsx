@@ -2,13 +2,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Subject } from '../../../services/profileHttpService';
-import { LIGHT_THEME, type ThemeColors } from '../../../theme/themeContext';
+import { type ThemeColors } from '../../../theme/themeContext';
 import { SubjectChip } from './SubjectChip';
 import { SubjectItem } from './SubjectItem';
-import { subjectsUpdateStyles as styles } from './subjectsUpdateStyles';
+import { type SubjectsUpdateStyles } from './subjectsUpdateStyles';
 
 interface CurrentSubjectsSectionProps {
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
   currentSubjects: Subject[];
   removingSubjectIds: Set<string>;
   onRemoveSubject: (subjectId: string) => void;
@@ -16,7 +17,7 @@ interface CurrentSubjectsSectionProps {
 }
 
 export const CurrentSubjectsSection = memo<CurrentSubjectsSectionProps>(
-  ({ colors, currentSubjects, removingSubjectIds, onRemoveSubject, isOnboarding = false }) => {
+  ({ colors, styles, currentSubjects, removingSubjectIds, onRemoveSubject, isOnboarding = false }) => {
     return (
       <View style={[styles.section, !isOnboarding && styles.currentSectionSpacing]}>
         {!isOnboarding ? (
@@ -51,6 +52,7 @@ CurrentSubjectsSection.displayName = 'CurrentSubjectsSection';
 
 interface OnboardingSubjectsContentProps {
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
   currentSubjects: Subject[];
   filteredSubjects: Subject[];
   searchQuery: string;
@@ -67,6 +69,7 @@ interface OnboardingSubjectsContentProps {
 export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
   ({
     colors,
+    styles,
     currentSubjects,
     filteredSubjects,
     searchQuery,
@@ -108,7 +111,12 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
         </View>
 
         {inlineErrorMessage ? (
-          <ErrorBanner message={inlineErrorMessage} onClose={onClearInlineError || (() => undefined)} />
+          <ErrorBanner
+            message={inlineErrorMessage}
+            onClose={onClearInlineError || (() => undefined)}
+            colors={colors}
+            styles={styles}
+          />
         ) : null}
 
         {currentSubjects.length === 0 ? (
@@ -160,6 +168,7 @@ OnboardingSubjectsContent.displayName = 'OnboardingSubjectsContent';
 
 interface AvailableSubjectsSectionProps {
   colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
   filteredSubjects: Subject[];
   searchQuery: string;
   emptySuggestionMessage?: string;
@@ -174,6 +183,7 @@ interface AvailableSubjectsSectionProps {
 export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
   ({
     colors,
+    styles,
     filteredSubjects,
     searchQuery,
     emptySuggestionMessage,
@@ -222,7 +232,12 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
         </View>
 
         {inlineErrorMessage ? (
-          <ErrorBanner message={inlineErrorMessage} onClose={onClearInlineError || (() => undefined)} />
+          <ErrorBanner
+            message={inlineErrorMessage}
+            onClose={onClearInlineError || (() => undefined)}
+            colors={colors}
+            styles={styles}
+          />
         ) : null}
 
         <View style={styles.subjectsList}>
@@ -256,14 +271,16 @@ AvailableSubjectsSection.displayName = 'AvailableSubjectsSection';
 interface ErrorBannerProps {
   message: string;
   onClose: () => void;
+  colors: ThemeColors;
+  styles: SubjectsUpdateStyles;
 }
 
-export const ErrorBanner = memo<ErrorBannerProps>(({ message, onClose }) => {
+export const ErrorBanner = memo<ErrorBannerProps>(({ message, onClose, colors, styles }) => {
   return (
     <View style={styles.errorContainer}>
       <Text style={styles.errorText}>{message}</Text>
       <TouchableOpacity onPress={onClose}>
-        <MaterialIcons name="close" size={20} color={LIGHT_THEME.error} />
+        <MaterialIcons name="close" size={20} color={colors.error} />
       </TouchableOpacity>
     </View>
   );
