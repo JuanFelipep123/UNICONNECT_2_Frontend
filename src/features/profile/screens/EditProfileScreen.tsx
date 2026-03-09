@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -126,12 +127,12 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
-      <SafeAreaView 
+      <SafeAreaView
         style={[styles.container, { backgroundColor: theme.background }]}
         edges={['top', 'left', 'right', 'bottom']}
       >
@@ -143,18 +144,17 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
           }}
         />
 
-        {/* Contenedor principal con flex para distribuir el espacio */}
-        <View style={styles.mainContainer}>
-          {/* ScrollView flexible que cede espacio al botón */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={[
-              styles.scrollContent,
-              { paddingBottom: insets.bottom > 0 ? insets.bottom + 116 : 116 },
-            ]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 112 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onScrollBeginDrag={Keyboard.dismiss}
+        >
             <ProfileHeader
               avatarUrl={profile.avatar_url || ''}
               onAvatarChange={updateAvatar}
@@ -170,7 +170,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
             <View style={styles.section}>
               <AcademicInfoSection
                 career={profile.career || ''}
-                semester={profile.semester || 1}
+                semester={profile.semester ?? null}
                 onSemesterChange={updateSemester}
               />
             </View>
@@ -208,26 +208,25 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
               )}
             </View>
 
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-          </ScrollView>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </ScrollView>
 
-          {/* Botón fijo en la parte inferior - siempre visible */}
-          <View
-            style={[
-              styles.buttonContainer,
-              {
-                paddingTop: 10,
-                paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 20,
-                backgroundColor: theme.background,
-              },
-            ]}
-          >
-            <SaveButton onPress={handleSave} loading={loading} />
-          </View>
+        {/* Botón fijo en la parte inferior - misma altura que Perfil */}
+        <View
+          style={[
+            styles.buttonContainer,
+            {
+              paddingTop: 10,
+              paddingBottom: Platform.OS === 'ios' ? 10 : 12,
+              backgroundColor: theme.background,
+            },
+          ]}
+        >
+          <SaveButton onPress={handleSave} loading={loading} />
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -236,12 +235,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  mainContainer: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    paddingBottom: 0,
-  },
   center: { justifyContent: 'center', alignItems: 'center' },
   scrollView: { 
     flex: 1,
@@ -279,7 +272,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    minHeight: 72,
+    justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },

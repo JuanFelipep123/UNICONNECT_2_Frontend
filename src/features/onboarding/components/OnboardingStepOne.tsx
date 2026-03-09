@@ -2,27 +2,28 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '../../../store/authStore';
 import {
-  autosaveOnboardingContact,
-  getOnboardingPrograms,
-  OnboardingApiError,
-  OnboardingStepOneValidationErrors,
-  submitOnboardingStepOne,
-  type OnboardingProgramOption,
+    autosaveOnboardingContact,
+    getOnboardingPrograms,
+    OnboardingApiError,
+    OnboardingStepOneValidationErrors,
+    submitOnboardingStepOne,
+    type OnboardingProgramOption,
 } from '../services/onboardingService';
 import { onboardingStepOneStyles as styles } from './onboardingStepOneStyles';
 
@@ -40,6 +41,7 @@ export function OnboardingStepOne() {
   const paramPhone = typeof params.phoneNumber === 'string' ? params.phoneNumber : '';
 
   const [career, setCareer] = useState(paramCareer);
+  const [isCareerSelected, setIsCareerSelected] = useState(Boolean(paramCareer.trim()));
   const [semester, setSemester] = useState<number | null>(paramSemester);
   const [phoneNumber, setPhoneNumber] = useState(paramPhone);
   const [programOptions, setProgramOptions] = useState<OnboardingProgramOption[]>([]);
@@ -122,6 +124,8 @@ export function OnboardingStepOne() {
 
     if (!normalizedCareer) {
       nextErrors.career = 'Debes seleccionar tu carrera.';
+    } else if (!isCareerSelected) {
+      nextErrors.career = 'Debes elegir una carrera de la lista antes de continuar.';
     }
 
     if (!semester) {
@@ -178,6 +182,7 @@ export function OnboardingStepOne() {
 
   const handleSelectCareer = (value: string) => {
     setCareer(value);
+    setIsCareerSelected(true);
     setShowProgramsList(false);
     setFormErrors((prev) => ({ ...prev, career: undefined }));
     careerInputRef.current?.blur();
@@ -186,6 +191,7 @@ export function OnboardingStepOne() {
 
   const handleCareerChange = (value: string) => {
     setCareer(value);
+    setIsCareerSelected(false);
     setShowProgramsList(true);
     setShowSemestersList(false);
     setFormErrors((prev) => ({ ...prev, career: undefined }));
@@ -198,7 +204,9 @@ export function OnboardingStepOne() {
   };
 
   const handlePhoneChange = (value: string) => {
-    setPhoneNumber(value);
+    const onlyNumbers = value.replace(/\D/g, '');
+    const limitedNumbers = onlyNumbers.slice(0, 10);
+    setPhoneNumber(limitedNumbers);
     setFormErrors((prev) => ({ ...prev, phone_number: undefined }));
   };
 
@@ -207,24 +215,31 @@ export function OnboardingStepOne() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>ACADEMICO Y PERSONAL</Text>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.stepText}>PASO 1 DE 2</Text>
-          <View style={styles.dotsRow}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={[styles.dot, styles.dotInactive]} />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>ACADEMICO Y PERSONAL</Text>
           </View>
 
-          <Text style={styles.helperText}>
-            Para comenzar, cuentanos un poco sobre tu situacion academica y personal.
-          </Text>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.content}>
+              <Text style={styles.stepText}>PASO 1 DE 2</Text>
+              <View style={styles.dotsRow}>
+                <View style={[styles.dot, styles.dotActive]} />
+                <View style={[styles.dot, styles.dotInactive]} />
+              </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.fieldContainer}>
+              <Text style={styles.helperText}>
+                Para comenzar, cuentanos un poco sobre tu situacion academica y personal.
+              </Text>
+
+              <View style={styles.formContainer}>
+              <View style={styles.fieldContainer}>
               <View style={[styles.fieldBox, showProgramsList && styles.fieldBoxActive]}>
                 <TextInput
                   ref={careerInputRef}
@@ -260,27 +275,25 @@ export function OnboardingStepOne() {
                   {programOptions.length === 0 ? (
                     <Text style={styles.listEmpty}>No existen programas para la busqueda actual.</Text>
                   ) : (
-                    <FlatList
-                      data={programOptions}
-                      keyExtractor={(item) => item.name}
-                      keyboardShouldPersistTaps="handled"
-                      renderItem={({ item }) => (
+                    <View>
+                      {programOptions.map((item, index) => (
                         <TouchableOpacity
+                          key={`${item.name}-${index}`}
                           onPress={() => handleSelectCareer(item.name)}
                           style={styles.listItem}
                         >
                           <Text style={styles.listItemText}>{item.name}</Text>
                         </TouchableOpacity>
-                      )}
-                    />
+                      ))}
+                    </View>
                   )}
                 </View>
               )}
 
               {formErrors.career ? <Text style={styles.fieldError}>{formErrors.career}</Text> : null}
-            </View>
+              </View>
 
-            <View style={styles.fieldContainer}>
+              <View style={styles.fieldContainer}>
               <Pressable
                 style={[styles.fieldBox, showSemestersList && styles.fieldBoxActive]}
                 onPress={() => {
@@ -301,67 +314,74 @@ export function OnboardingStepOne() {
 
               {showSemestersList ? (
                 <View style={styles.listContainer}>
-                  <FlatList
-                    data={SEMESTERS}
-                    keyExtractor={(item) => String(item)}
+                  <ScrollView
+                    nestedScrollEnabled
                     keyboardShouldPersistTaps="handled"
-                    renderItem={({ item }) => (
+                    showsVerticalScrollIndicator
+                  >
+                    {SEMESTERS.map((item) => (
                       <TouchableOpacity
+                        key={String(item)}
                         onPress={() => handleSelectSemester(item)}
                         style={styles.listItem}
                       >
                         <Text style={styles.listItemText}>{item}</Text>
                       </TouchableOpacity>
-                    )}
-                  />
+                    ))}
+                  </ScrollView>
                 </View>
               ) : null}
 
               {formErrors.semester ? <Text style={styles.fieldError}>{formErrors.semester}</Text> : null}
-            </View>
-
-            <View style={styles.fieldContainer}>
-              <View style={styles.fieldBox}>
-                <MaterialIcons name="phone" size={20} color="#C8A04D" />
-                <TextInput
-                  value={phoneNumber}
-                  onChangeText={handlePhoneChange}
-                  onFocus={() => {
-                    setShowProgramsList(false);
-                    setShowSemestersList(false);
-                  }}
-                  placeholder="Ej. +57 300 123 4567"
-                  placeholderTextColor="#6B798F"
-                  style={styles.input}
-                  keyboardType="phone-pad"
-                />
               </View>
-              {formErrors.phone_number ? (
-                <Text style={styles.fieldError}>{formErrors.phone_number}</Text>
-              ) : null}
+
+                <View style={styles.fieldContainer}>
+                  <View style={styles.fieldBox}>
+                    <MaterialIcons name="phone" size={20} color="#C8A04D" />
+                    <TextInput
+                      value={phoneNumber}
+                      onChangeText={handlePhoneChange}
+                      onFocus={() => {
+                        setShowProgramsList(false);
+                        setShowSemestersList(false);
+                      }}
+                      placeholder="Ej. +57 300 123 4567"
+                      placeholderTextColor="#6B798F"
+                      style={styles.input}
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
+                    />
+                  </View>
+                  {formErrors.phone_number ? (
+                    <Text style={styles.fieldError}>{formErrors.phone_number}</Text>
+                  ) : null}
+                </View>
+
+                {globalError ? <Text style={styles.globalError}>{globalError}</Text> : null}
+              </View>
+
+              <View style={styles.spacer} />
+
+              <Pressable
+                disabled={isSubmitting}
+                onPress={handleContinue}
+                style={({ pressed }) => [
+                  styles.continueButton,
+                  (pressed || isSubmitting) && styles.continueButtonPressed,
+                ]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.continueButtonText}>Continuar</Text>
+                )}
+              </Pressable>
             </View>
-
-            {globalError ? <Text style={styles.globalError}>{globalError}</Text> : null}
-          </View>
-
-          <View style={styles.spacer} />
-
-          <Pressable
-            disabled={isSubmitting}
-            onPress={handleContinue}
-            style={({ pressed }) => [
-              styles.continueButton,
-              (pressed || isSubmitting) && styles.continueButtonPressed,
-            ]}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.continueButtonText}>Continuar</Text>
-            )}
-          </Pressable>
-        </View>
-      </SafeAreaView>
+          </ScrollView>
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }

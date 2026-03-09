@@ -39,15 +39,9 @@ export const useProfileForm = (
       return;
     }
 
-    setProfile((prev) => {
-      if (initialData.id === prev.id) {
-        return prev;
-      }
-
-      return {
-        ...initialData,
-        materias: initialData.materias || [],
-      };
+    setProfile({
+      ...initialData,
+      materias: initialData.materias || [],
     });
   }, [initialData]);
 

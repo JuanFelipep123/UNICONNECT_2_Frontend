@@ -33,7 +33,7 @@ export const SaveButton = memo<SaveButtonProps>(
             opacity: disabled || loading ? 0.6 : 1,
           },
         ]}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
       >
         {loading ? (
           <ActivityIndicator color={colors.gold} size="small" />
@@ -41,7 +41,7 @@ export const SaveButton = memo<SaveButtonProps>(
           <>
             <MaterialIcons name="check-circle" size={20} color={colors.white} />
             <Text style={[styles.text, { color: colors.white, marginLeft: 8 }]}>
-              Guardar Perfil
+              GUARDAR PERFIL
             </Text>
           </>
         )}
@@ -58,16 +58,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    minHeight: 50,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    minHeight: 52,
   },
   text: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });
 

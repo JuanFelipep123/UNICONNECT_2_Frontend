@@ -36,6 +36,94 @@ type ReactNativeUploadFile = {
   type: string;
 };
 
+const getApiOrigin = (): string => {
+  const trimmed = API_BASE_URL.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+};
+
+const normalizeAvatarUrl = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  const origin = getApiOrigin();
+
+  if (trimmed.startsWith('/')) {
+    return `${origin}${trimmed}`;
+  }
+
+  return `${origin}/${trimmed}`;
+};
+
+const normalizeProfileAvatar = (profile?: ProfileData): ProfileData | undefined => {
+  if (!profile) {
+    return undefined;
+  }
+
+  return {
+    ...profile,
+    avatar_url: normalizeAvatarUrl(profile.avatar_url) || null,
+  };
+};
+
+const inferMimeTypeFromUri = (uri: string): string => {
+  const normalized = uri.toLowerCase();
+
+  if (normalized.endsWith('.png')) return 'image/png';
+  if (normalized.endsWith('.webp')) return 'image/webp';
+  if (normalized.endsWith('.heic') || normalized.endsWith('.heif')) return 'image/heic';
+  if (normalized.endsWith('.jpg') || normalized.endsWith('.jpeg')) return 'image/jpeg';
+
+  return 'image/jpeg';
+};
+
+const inferFileExtensionFromMime = (mimeType: string): string => {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  if (mimeType === 'image/heic') return 'heic';
+  return 'jpg';
+};
+
+const extractAvatarUrl = (payload: unknown): string | undefined => {
+  if (!payload || typeof payload !== 'object') {
+    return undefined;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const data = record.data && typeof record.data === 'object'
+    ? (record.data as Record<string, unknown>)
+    : undefined;
+
+  const candidates = [
+    record.url,
+    record.avatar_url,
+    data?.url,
+    data?.avatar_url,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeAvatarUrl(candidate);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return undefined;
+};
+
 const extractSubjectsArray = (payload: unknown): Subject[] => {
   if (Array.isArray(payload)) {
     return payload as Subject[];
@@ -76,7 +164,7 @@ export const profileHttpService = {
         throw new Error(result.error || `Error: ${response.status}`);
       }
 
-      return { success: true, data: result.data };
+      return { success: true, data: normalizeProfileAvatar(result.data) };
     } catch (error) {
       const appError = parseError(error);
       return { success: false, error: appError.message };
@@ -114,7 +202,7 @@ export const profileHttpService = {
         throw new Error(result.error || `Error: ${response.status}`);
       }
 
-      return { success: true, data: result.data };
+      return { success: true, data: normalizeProfileAvatar(result.data) };
     } catch (error) {
       const appError = parseError(error);
       return { success: false, error: appError.message };
@@ -147,28 +235,130 @@ export const profileHttpService = {
 
   async uploadAvatar(id: string, uri: string, token: string): Promise<ApiResponse<{ url: string }>> {
     try {
-      const formData = new FormData();
-      // RN env allows file-like objects for FormData though DOM typings expect Blob.
-      const file: ReactNativeUploadFile = {
-        uri,
-        type: 'image/jpeg',
-        name: `avatar_${id}.jpg`,
+      const mimeType = inferMimeTypeFromUri(uri);
+      const extension = inferFileExtensionFromMime(mimeType);
+
+      const uploadWithField = async (
+        endpoint: string,
+        method: 'POST' | 'PUT' | 'PATCH',
+        fieldName: 'file' | 'avatar' | 'image'
+      ) => {
+        const formData = new FormData();
+        const file: ReactNativeUploadFile = {
+          uri,
+          type: mimeType,
+          name: `avatar_${id}.${extension}`,
+        };
+        formData.append(fieldName, file as unknown as Blob);
+
+        const response = await fetch(endpoint, {
+          method,
+          body: formData,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const rawText = await response.text();
+        let result: Record<string, unknown> = {};
+        if (rawText) {
+          try {
+            result = JSON.parse(rawText) as Record<string, unknown>;
+          } catch {
+            result = { message: rawText };
+          }
+        }
+
+        const uploadedUrl = response.ok ? extractAvatarUrl(result) : undefined;
+        const backendMessage =
+          (typeof result?.error === 'string' && result.error) ||
+          (typeof result?.message === 'string' && result.message) ||
+          `No se pudo subir la imagen (HTTP ${response.status}).`;
+
+        return {
+          ok: response.ok,
+          status: response.status,
+          uploadedUrl,
+          backendMessage,
+          endpoint,
+        };
       };
-      formData.append('file', file as unknown as Blob);
 
-      const response = await fetch(`${API_BASE_URL}/profiles/${id}/avatar`, {
-        method: 'POST',
-        body: formData,
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const endpointCandidates = [
+        `${API_BASE_URL}/profiles/${id}/avatar`,
+        `${API_BASE_URL}/profiles/${id}/photo`,
+        `${API_BASE_URL}/profiles/avatar/${id}`,
+        `${API_BASE_URL}/profiles/photo/${id}`,
+      ];
 
-      const result = await response.json();
+      // Prioriza el contrato principal del backend antes de probar compatibilidad.
+      const methodCandidates: ('POST' | 'PUT' | 'PATCH')[] = ['POST', 'PUT', 'PATCH'];
+      const fieldCandidates: ('file' | 'avatar' | 'image')[] = ['file', 'avatar', 'image'];
+      const failures: string[] = [];
+      let hadSuccessfulUploadWithoutUrl = false;
+      let hasAuthFailure = false;
+      let hasUnsupportedMediaType = false;
+      let allNotFound = true;
 
-      if (!response.ok) {
-        throw new Error(result.error || `Error: ${response.status}`);
+      for (const endpoint of endpointCandidates) {
+        for (const method of methodCandidates) {
+          for (const fieldName of fieldCandidates) {
+            const attempt = await uploadWithField(endpoint, method, fieldName);
+
+            if (attempt.ok && attempt.uploadedUrl) {
+              return { success: true, data: { url: attempt.uploadedUrl } };
+            }
+
+            if (attempt.ok && !attempt.uploadedUrl) {
+              hadSuccessfulUploadWithoutUrl = true;
+            }
+
+            if (attempt.status !== 404) {
+              allNotFound = false;
+            }
+
+            if (attempt.status === 401 || attempt.status === 403) {
+              hasAuthFailure = true;
+            }
+
+            if (attempt.status === 415) {
+              hasUnsupportedMediaType = true;
+            }
+
+            const signature = `${method} ${endpoint} [${fieldName}]`;
+            failures.push(`${signature} -> ${attempt.backendMessage}`);
+
+            // No vale la pena seguir intentando variantes ante errores de servidor o auth.
+            if (attempt.status >= 500 || hasAuthFailure) {
+              break;
+            }
+          }
+
+          if (hasAuthFailure) {
+            break;
+          }
+        }
+
+        if (hasAuthFailure) {
+          break;
+        }
       }
 
-      return { success: true, data: result.data };
+      if (hasAuthFailure) {
+        throw new Error('No autorizado para subir avatar. Inicia sesion nuevamente.');
+      }
+
+      if (hasUnsupportedMediaType) {
+        throw new Error('Formato de imagen no soportado por el servidor. Usa JPG, PNG, WEBP o HEIC.');
+      }
+
+      if (allNotFound) {
+        throw new Error('El backend no expone una ruta valida para subir avatar.');
+      }
+
+      if (hadSuccessfulUploadWithoutUrl) {
+        return { success: true, data: { url: '' } };
+      }
+
+      throw new Error(failures[failures.length - 1] || 'No se pudo subir el avatar.');
     } catch (error) {
       const appError = parseError(error);
       return { success: false, error: appError.message };

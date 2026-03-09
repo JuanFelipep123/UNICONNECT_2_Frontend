@@ -70,7 +70,15 @@ export function OnboardingWelcomeScreen() {
   const isLastStep = step === SLIDES.length - 1;
   const horizontalPadding = useMemo(() => clamp(screenWidth * 0.055, 18, 24), [screenWidth]);
   const slideWidth = useMemo(() => screenWidth - horizontalPadding * 2, [horizontalPadding, screenWidth]);
-  const imageHeight = useMemo(() => clamp(screenHeight * 0.48, 300, 500), [screenHeight]);
+  const isCompactDevice = useMemo(() => screenHeight < 740 || screenWidth < 370, [screenHeight, screenWidth]);
+  const imageHeight = useMemo(
+    () => clamp(screenHeight * (isCompactDevice ? 0.34 : 0.4), isCompactDevice ? 210 : 240, 380),
+    [isCompactDevice, screenHeight]
+  );
+  const titleFontSize = useMemo(() => clamp(screenWidth * 0.082, 26, 36), [screenWidth]);
+  const titleLineHeight = useMemo(() => Math.round(titleFontSize * 1.12), [titleFontSize]);
+  const descriptionFontSize = useMemo(() => clamp(screenWidth * 0.042, 14, 17), [screenWidth]);
+  const descriptionLineHeight = useMemo(() => Math.round(descriptionFontSize * 1.5), [descriptionFontSize]);
 
   const handleSkip = () => {
     router.replace('/(onboarding)/complete-profile');
@@ -94,20 +102,24 @@ export function OnboardingWelcomeScreen() {
     ({ item }: { item: OnboardingSlide }) => {
       return (
         <View style={[styles.slide, { width: slideWidth }]}>
-          <Image source={{ uri: item.imageUri }} style={[styles.image, { height: imageHeight }]} resizeMode="cover" />
+          <Image
+            source={{ uri: item.imageUri }}
+            style={[styles.image, { height: imageHeight }]}
+            resizeMode="cover"
+          />
 
           <View style={styles.textBlock}>
-            <Text allowFontScaling={false} style={styles.title}>
+            <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleLineHeight }]}>
               {item.title}
             </Text>
-            <Text allowFontScaling={false} style={styles.description}>
+            <Text style={[styles.description, { fontSize: descriptionFontSize, lineHeight: descriptionLineHeight }]}>
               {item.description}
             </Text>
           </View>
         </View>
       );
     },
-    [imageHeight, slideWidth]
+    [descriptionFontSize, descriptionLineHeight, imageHeight, slideWidth, titleFontSize, titleLineHeight]
   );
 
   return (
@@ -191,8 +203,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   headerRow: {
-    marginTop: 34,
-    marginBottom: 2,
+    marginTop: 16,
+    marginBottom: 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -222,32 +234,28 @@ const styles = StyleSheet.create({
   slide: {
     flex: 1,
     justifyContent: 'center',
-    paddingBottom: 8,
+    paddingVertical: 8,
   },
   image: {
     width: '100%',
+    minHeight: 210,
     borderRadius: 12,
     backgroundColor: '#E5EAF0',
-    marginTop: 8,
   },
   textBlock: {
-    marginTop: 46,
+    marginTop: 22,
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
     paddingHorizontal: 8,
   },
   title: {
     color: COLORS.navy,
-    fontSize: 36,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 42,
   },
   description: {
     color: COLORS.text,
-    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 24,
   },
   footer: {
     alignItems: 'center',

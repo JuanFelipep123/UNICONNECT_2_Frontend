@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo } from 'react';
-import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Subject } from '../../../services/profileHttpService';
 import { LIGHT_THEME, type ThemeColors } from '../../../theme/themeContext';
 import { SubjectChip } from './SubjectChip';
@@ -121,20 +121,18 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
               {searchQuery ? 'No se encontraron materias' : emptySuggestionMessage}
             </Text>
           ) : (
-            <FlatList
-              data={filteredSubjects}
-              renderItem={({ item }) => (
+            <View>
+              {filteredSubjects.map((item) => (
                 <SubjectItem
+                  key={item.id}
                   name={item.name}
                   department={item.program || item.department || ''}
                   onAdd={() => onAddSubject(item)}
                   isLoading={addingSubjectIds.has(item.id)}
                   variant="onboarding"
                 />
-              )}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+              ))}
+            </View>
           )}
         </View>
       </View>
@@ -202,20 +200,18 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
               {searchQuery ? 'No se encontraron materias' : (emptySuggestionMessage || 'Todas las materias estan agregadas')}
             </Text>
           ) : (
-            <FlatList
-              data={filteredSubjects}
-              renderItem={({ item }) => (
+            <View>
+              {filteredSubjects.map((item) => (
                 <SubjectItem
+                  key={item.id}
                   name={item.name}
                   department={item.program || item.department || ''}
                   onAdd={() => onAddSubject(item)}
                   isLoading={addingSubjectIds.has(item.id)}
                   variant={isOnboarding ? 'onboarding' : 'default'}
                 />
-              )}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+              ))}
+            </View>
           )}
         </View>
       </View>

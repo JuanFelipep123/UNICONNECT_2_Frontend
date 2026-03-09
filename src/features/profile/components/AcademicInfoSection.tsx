@@ -1,15 +1,18 @@
-import { Picker } from '@react-native-picker/picker';
-import React, { memo, useCallback } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
+    Pressable,
+    ScrollView,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from 'react-native';
 import { SEMESTERS } from '../types/profile';
 
 interface AcademicInfoSectionProps {
   career: string;
-  semester: number;
+  semester: number | string | null;
   onSemesterChange: (value: number) => void;
 }
 
@@ -23,14 +26,33 @@ const colors = {
 
 export const AcademicInfoSection = memo<AcademicInfoSectionProps>(
   ({ career, semester, onSemesterChange }) => {
+    const [isSemesterDropdownOpen, setSemesterDropdownOpen] = useState(false);
 
-    const semesterString = semester ? String(semester) : '';
+    const semesterString = useMemo(() => {
+      if (semester === null || semester === undefined) {
+        return '';
+      }
+
+      const parsed =
+        typeof semester === 'number'
+          ? semester
+          : Number.parseInt(String(semester), 10);
+
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+        return '';
+      }
+
+      return String(parsed);
+    }, [semester]);
+
     const careerString = career || '';
+    const selectedSemesterLabel = semesterString ? `${semesterString}` : 'Selecciona semestre';
 
     // Memoizar handlers para evitar recreación innecesaria
-    const handleSemesterChange = useCallback((value: string) => {
-      const semesterNumber = value ? parseInt(value, 10) : 0;
+    const handleSemesterChange = useCallback((value: string | number) => {
+      const semesterNumber = value ? Number.parseInt(String(value), 10) : 0;
       onSemesterChange(semesterNumber);
+      setSemesterDropdownOpen(false);
     }, [onSemesterChange]);
 
     return (
@@ -63,30 +85,47 @@ export const AcademicInfoSection = memo<AcademicInfoSectionProps>(
           <Text style={[styles.label, { color: colors.label }]}>
             Semestre Actual
           </Text>
-          <View
+          <Pressable
+            onPress={() => setSemesterDropdownOpen((prev) => !prev)}
             style={[
-              styles.pickerContainer,
+              styles.selectContainer,
               {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
               },
             ]}
           >
-            <Picker
-              selectedValue={semesterString}
-              onValueChange={handleSemesterChange}
-              style={[styles.picker, { color: colors.text }]}
-              dropdownIconColor={colors.gold}
+            <Text
+              style={[
+                styles.selectText,
+                { color: semesterString ? colors.text : colors.label },
+              ]}
             >
-              {SEMESTERS.map((s) => (
-                <Picker.Item
-                  key={s.value}
-                  label={s.label}
-                  value={s.value}
-                />
-              ))}
-            </Picker>
-          </View>
+              {selectedSemesterLabel}
+            </Text>
+            <MaterialIcons name="keyboard-arrow-down" size={22} color={colors.gold} />
+          </Pressable>
+
+          {isSemesterDropdownOpen ? (
+            <View style={styles.listContainer}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
+                {SEMESTERS.map((s) => (
+                  <TouchableOpacity
+                    key={s.value}
+                    style={styles.listItem}
+                    onPress={() => handleSemesterChange(s.value)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.listItemText}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -107,6 +146,7 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 16,
+    position: 'relative',
   },
   label: {
     fontSize: 12,
@@ -116,16 +156,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  pickerContainer: {
+  selectContainer: {
     borderWidth: 1,
     borderRadius: 14,
-    overflow: 'hidden',
-    justifyContent: 'center',
     minHeight: 56,
-    paddingHorizontal: 6,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  picker: {
-    height: 56,
+  selectText: {
+    flex: 1,
+    color: '#1F2A3C',
+    fontSize: 18,
   },
   readOnlyContainer: {
     borderWidth: 1,
@@ -144,5 +187,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B798F',
     fontStyle: 'italic',
+  },
+  listContainer: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D5DDE8',
+    backgroundColor: '#FFFFFF',
+    maxHeight: 220,
+    overflow: 'hidden',
+  },
+  listItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF2F7',
+  },
+  listItemText: {
+    color: '#293447',
+    fontSize: 16,
   },
 });

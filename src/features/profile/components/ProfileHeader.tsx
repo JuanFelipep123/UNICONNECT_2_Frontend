@@ -28,6 +28,7 @@ export const ProfileHeader = memo<ProfileHeaderProps>(
     onAvatarChange,
   }) => {
     const [loading, setLoading] = useState(false);
+    const hasAvatar = typeof avatarUrl === 'string' && avatarUrl.trim().length > 0;
 
     const pickImage = useCallback(async () => {
       try {
@@ -52,10 +53,16 @@ export const ProfileHeader = memo<ProfileHeaderProps>(
     return (
       <View style={styles.container}>
         <View style={[styles.avatarContainer, { borderColor: colors.surface }]}>
-          <Image
-            source={{ uri: avatarUrl }}
-            style={styles.avatar}
-          />
+          {hasAvatar ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <MaterialIcons name="person" size={56} color="#9AA6B2" />
+            </View>
+          )}
           <TouchableOpacity
             style={[
               styles.cameraButton,
@@ -97,6 +104,13 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: '100%',
+  },
+  avatarFallback: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#EEF2F6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cameraButton: {
     position: 'absolute',

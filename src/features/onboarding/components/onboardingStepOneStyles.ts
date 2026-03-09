@@ -25,11 +25,9 @@ export const onboardingStepOneStyles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.white,
-    fontSize: 27,
-    lineHeight: 32,
-    letterSpacing: 1.2,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
   },
   content: {
     flex: 1,

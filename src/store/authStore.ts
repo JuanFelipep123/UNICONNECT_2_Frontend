@@ -7,6 +7,7 @@ const AUTH_USER_ID_KEY = 'auth_user_id';
 interface AuthState {
   userId: string | null;
   token: string | null;
+  profileRefreshKey: number;
   needsOnboarding: boolean | null;
   onboardingResolved: boolean;
   needsCompleteProfile: boolean;
@@ -18,6 +19,7 @@ interface AuthState {
   setOnboardingResolved: (value: boolean) => void;
   setNeedsCompleteProfile: (value: boolean) => void;
   markProfileAsComplete: () => void;
+  triggerProfileRefresh: () => void;
   hydrateSession: () => Promise<void>;
   clearSession: () => Promise<void>;
 }
@@ -25,6 +27,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   userId: null,
   token: null,
+  profileRefreshKey: 0,
   needsOnboarding: null,
   onboardingResolved: false,
   needsCompleteProfile: false,
@@ -66,6 +69,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ needsCompleteProfile: false });
   },
 
+  triggerProfileRefresh: () => {
+    set((state) => ({ profileRefreshKey: state.profileRefreshKey + 1 }));
+  },
+
   hydrateSession: async () => {
     if (useAuthStore.getState().isSessionCleared) {
       console.log('[authStore] Rehidratacion omitida por cierre de sesion manual.');
@@ -97,6 +104,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       userId: null,
       token: null,
+      profileRefreshKey: 0,
       needsOnboarding: null,
       onboardingResolved: false,
       needsCompleteProfile: false,

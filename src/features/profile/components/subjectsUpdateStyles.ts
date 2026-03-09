@@ -27,11 +27,18 @@ export const subjectsUpdateStyles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 0,
     justifyContent: 'center',
+    alignItems: 'stretch',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  headerLeftOnboarding: {
+    flex: 1,
+    alignSelf: 'stretch',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   backButton: {
     padding: 8,
@@ -42,11 +49,9 @@ export const subjectsUpdateStyles = StyleSheet.create({
     color: THEME.surface,
   },
   headerTitleOnboarding: {
-    fontSize: 27,
-    lineHeight: 32,
-    letterSpacing: 1.2,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
     flexShrink: 1,
   },
   scrollView: {
@@ -196,6 +201,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   saveButtonTextOnboarding: {
     fontSize: 16,

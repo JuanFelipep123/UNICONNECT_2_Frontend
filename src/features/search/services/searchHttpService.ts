@@ -12,6 +12,43 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+const getApiOrigin = (): string => {
+  const trimmed = API_BASE_URL.replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed.slice(0, -4) : trimmed;
+};
+
+const normalizeAvatarUrl = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+
+  const origin = getApiOrigin();
+  if (trimmed.startsWith("/")) {
+    return `${origin}${trimmed}`;
+  }
+
+  return `${origin}/${trimmed}`;
+};
+
+const normalizeClassmates = (items: Classmate[]): Classmate[] =>
+  items.map((item) => ({
+    ...item,
+    avatar_url: normalizeAvatarUrl(item.avatar_url),
+  }));
+
 console.log("[searchHttpService] Base URL configurada:", API_BASE_URL);
 
 export const searchHttpService = {
@@ -78,7 +115,8 @@ export const searchHttpService = {
         throw new Error(json.error || `Error ${response.status}`);
       }
 
-      return { success: true, data: json.data ?? json };
+      const classmates = (json.data ?? json) as Classmate[];
+      return { success: true, data: normalizeClassmates(classmates) };
     } catch (error) {
       const appError = parseError(error);
       console.error(

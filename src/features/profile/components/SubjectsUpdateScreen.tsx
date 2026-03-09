@@ -52,7 +52,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
         edges={['top']}
       >
         <View style={[styles.header, isOnboarding ? styles.headerOnboarding : null, { backgroundColor: colors.primary }]}>
-          <View style={styles.headerLeft}>
+          <View style={[styles.headerLeft, isOnboarding ? styles.headerLeftOnboarding : null]}>
             <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
               <MaterialIcons name="arrow-back" size={24} color={colors.surface} />
             </TouchableOpacity>
@@ -97,7 +97,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
       />
 
       <View style={[styles.header, isOnboarding ? styles.headerOnboarding : null, { backgroundColor: colors.primary }]}> 
-        <View style={styles.headerLeft}>
+        <View style={[styles.headerLeft, isOnboarding ? styles.headerLeftOnboarding : null]}>
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
             <MaterialIcons name="arrow-back" size={24} color={colors.surface} />
           </TouchableOpacity>
@@ -107,8 +107,8 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
         </View>
       </View>
 
-      {isOnboarding ? (
-        <View style={styles.onboardingHeroContainer}>
+        {isOnboarding ? (
+          <View style={styles.onboardingHeroContainer}>
           <Text style={styles.onboardingStepLabel}>PASO 2 DE 2</Text>
           <View style={styles.onboardingDotsRow}>
             <View style={[styles.onboardingDot, styles.onboardingDotInactive]} />
@@ -119,20 +119,24 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           <Text style={styles.onboardingDescription}>
             Agrega tus cursos actuales para que tus companeros puedan encontrarte y colaborar contigo.
           </Text>
-        </View>
-      ) : null}
+          </View>
+        ) : null}
 
-      {isLoading ? (
-        <View style={[styles.container, styles.center]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando materias...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
-          showsVerticalScrollIndicator={false}
-        >
+        {isLoading ? (
+          <View style={[styles.container, styles.center]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Cargando materias...</Text>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            nestedScrollEnabled
+            scrollEventThrottle={16}
+          >
           {isOnboarding ? (
             <OnboardingSubjectsContent
               colors={colors}
@@ -176,34 +180,34 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           )}
 
           {savingError && <ErrorBanner message={savingError} onClose={clearError} />}
-        </ScrollView>
-      )}
+          </ScrollView>
+        )}
 
-      <View
-        style={[
-          styles.buttonContainer,
-          isOnboarding ? styles.buttonContainerOnboarding : null,
-          { paddingBottom: isOnboarding ? (insets.bottom > 0 ? insets.bottom : 0) : (insets.bottom > 0 ? insets.bottom : 16) },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.saveButton, isOnboarding ? styles.saveButtonOnboarding : null, { backgroundColor: colors.primary }]}
-          onPress={handleSave}
-          disabled={saving}
-          activeOpacity={0.85}
+        <View
+          style={[
+            styles.buttonContainer,
+            isOnboarding ? styles.buttonContainerOnboarding : null,
+            { paddingBottom: isOnboarding ? (insets.bottom > 0 ? insets.bottom : 0) : (insets.bottom > 0 ? insets.bottom : 16) },
+          ]}
         >
-          {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color="#FFFFFF" /> : null}
-              <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: '#FFFFFF' }]}>
-                {isOnboarding ? 'FINALIZAR REGISTRO' : 'Guardar Cambios'}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.saveButton, isOnboarding ? styles.saveButtonOnboarding : null, { backgroundColor: colors.primary }]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color="#FFFFFF" /> : null}
+                <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: '#FFFFFF' }]}>
+                  {isOnboarding ? 'FINALIZAR REGISTRO' : 'GUARDAR CAMBIOS'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
     </SafeAreaView>
   );
 };
