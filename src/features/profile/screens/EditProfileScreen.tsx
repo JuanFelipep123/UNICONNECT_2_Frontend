@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -11,7 +11,7 @@ import {
     Text,
     View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../../store/authStore';
 import { LIGHT_THEME } from '../../../theme/themeContext';
 import { getErrorMessage, parseError } from '../../../utils/errorHandler';
@@ -28,7 +28,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   const theme = LIGHT_THEME;
   const router = useRouter();
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
   const { userId, token } = useAuthStore();
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
@@ -63,21 +62,12 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   // Esto asegura que los cambios de materias desde SubjectsUpdateScreen se reflejen
   useFocusEffect(
     useCallback(() => {
-      console.log('[EditProfileScreen] Pantalla enfocada - cargando datos...');
       loadProfile();
       if (userId && token) {
         reloadSubjects();
       }
     }, [loadProfile, reloadSubjects, userId, token])
   );
-
-  // Log solo para depuración al cambiar la lista de materias
-  useEffect(() => {
-    if (profileSubjects.length > 0) {
-      console.log('[EditProfileScreen] Materias cargadas del backend:', profileSubjects.length, 'items');
-      console.log('[EditProfileScreen] Materias:', profileSubjects);
-    }
-  }, [profileSubjects]);
 
   // Separar lógica de manejo de guardado
   const handleSave = useCallback(async () => {

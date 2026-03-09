@@ -1,10 +1,15 @@
-import { MaterialIcons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback } from 'react';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LIGHT_THEME } from '../../../theme/themeContext';
 import { useSubjectsUpdateController } from '../hooks/useSubjectsUpdateController';
+import {
+    SubjectsUpdateHeader,
+    SubjectsUpdateLoadErrorState,
+    SubjectsUpdateOnboardingHero,
+    SubjectsUpdateSaveFooter,
+} from './SubjectsUpdateScreenParts';
 import {
     AvailableSubjectsSection,
     CurrentSubjectsSection,
@@ -45,41 +50,23 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
     errorAvailable,
   } = useSubjectsUpdateController(isOnboarding);
 
+  const screenTitle = isOnboarding ? 'SELECCIONA TUS MATERIAS' : 'Actualizar Materias';
+  const handleClearInlineError = useCallback(() => setAddingError(null), [setAddingError]);
+
   if (loadError && !isLoading) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: colors.background }]}
         edges={['top']}
       >
-        <View style={[styles.header, isOnboarding ? styles.headerOnboarding : null, { backgroundColor: colors.primary }]}>
-          <View style={[styles.headerLeft, isOnboarding ? styles.headerLeftOnboarding : null]}>
-            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-              <MaterialIcons name="arrow-back" size={24} color={colors.surface} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, isOnboarding ? styles.headerTitleOnboarding : null]}>
-              {isOnboarding ? 'SELECCIONA TUS MATERIAS' : 'Actualizar Materias'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={[styles.container, styles.center, { padding: 24 }]}>
-          <MaterialIcons name="error-outline" size={48} color={colors.primary} />
-          <Text style={[styles.errorMessage, { marginTop: 16, marginBottom: 8 }]}>
-            {loadError || 'Error desconocido'}
-          </Text>
-          {errorProfile && (
-            <Text style={[styles.errorDetails, { marginBottom: 16 }]}>Error de perfil: {errorProfile}</Text>
-          )}
-          {errorAvailable && (
-            <Text style={[styles.errorDetails, { marginBottom: 16 }]}>Error de materias: {errorAvailable}</Text>
-          )}
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: colors.primary }]}
-            onPress={handleRetry}
-          >
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+        <SubjectsUpdateHeader isOnboarding={isOnboarding} title={screenTitle} onGoBack={handleGoBack} colors={colors} />
+        <SubjectsUpdateLoadErrorState
+          loadError={loadError}
+          errorProfile={errorProfile}
+          errorAvailable={errorAvailable}
+          onRetry={handleRetry}
+          colors={colors}
+        />
       </SafeAreaView>
     );
   }
@@ -96,31 +83,9 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
         }}
       />
 
-      <View style={[styles.header, isOnboarding ? styles.headerOnboarding : null, { backgroundColor: colors.primary }]}> 
-        <View style={[styles.headerLeft, isOnboarding ? styles.headerLeftOnboarding : null]}>
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={colors.surface} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, isOnboarding ? styles.headerTitleOnboarding : null]}>
-            {isOnboarding ? 'SELECCIONA TUS MATERIAS' : 'Actualizar Materias'}
-          </Text>
-        </View>
-      </View>
+      <SubjectsUpdateHeader isOnboarding={isOnboarding} title={screenTitle} onGoBack={handleGoBack} colors={colors} />
 
-        {isOnboarding ? (
-          <View style={styles.onboardingHeroContainer}>
-          <Text style={styles.onboardingStepLabel}>PASO 2 DE 2</Text>
-          <View style={styles.onboardingDotsRow}>
-            <View style={[styles.onboardingDot, styles.onboardingDotInactive]} />
-            <View style={styles.onboardingDotPill}>
-              <View style={[styles.onboardingDot, styles.onboardingDotActive]} />
-            </View>
-          </View>
-          <Text style={styles.onboardingDescription}>
-            Agrega tus cursos actuales para que tus companeros puedan encontrarte y colaborar contigo.
-          </Text>
-          </View>
-        ) : null}
+        {isOnboarding ? <SubjectsUpdateOnboardingHero /> : null}
 
         {isLoading ? (
           <View style={[styles.container, styles.center]}>
@@ -150,7 +115,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
               onAddSubject={handleAddSubject}
               onRemoveSubject={handleRemoveSubject}
               inlineErrorMessage={addingError}
-              onClearInlineError={() => setAddingError(null)}
+              onClearInlineError={handleClearInlineError}
             />
           ) : (
             <>
@@ -173,7 +138,7 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
                 onAddSubject={handleAddSubject}
                 emptySuggestionMessage={emptySuggestionMessage}
                 inlineErrorMessage={addingError}
-                onClearInlineError={() => setAddingError(null)}
+                onClearInlineError={handleClearInlineError}
                 isOnboarding={false}
               />
             </>
@@ -183,31 +148,13 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
           </ScrollView>
         )}
 
-        <View
-          style={[
-            styles.buttonContainer,
-            isOnboarding ? styles.buttonContainerOnboarding : null,
-            { paddingBottom: isOnboarding ? (insets.bottom > 0 ? insets.bottom : 0) : (insets.bottom > 0 ? insets.bottom : 16) },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.saveButton, isOnboarding ? styles.saveButtonOnboarding : null, { backgroundColor: colors.primary }]}
-            onPress={handleSave}
-            disabled={saving}
-            activeOpacity={0.85}
-          >
-            {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color="#FFFFFF" /> : null}
-                <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: '#FFFFFF' }]}>
-                  {isOnboarding ? 'FINALIZAR REGISTRO' : 'GUARDAR CAMBIOS'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        <SubjectsUpdateSaveFooter
+          isOnboarding={isOnboarding}
+          insetsBottom={insets.bottom}
+          saving={saving}
+          onSave={handleSave}
+          colors={colors}
+        />
     </SafeAreaView>
   );
 };

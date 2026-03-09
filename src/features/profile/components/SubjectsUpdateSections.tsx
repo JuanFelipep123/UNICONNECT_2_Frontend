@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import React, { memo } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { type Subject } from '../../../services/profileHttpService';
 import { LIGHT_THEME, type ThemeColors } from '../../../theme/themeContext';
@@ -79,6 +79,21 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
     inlineErrorMessage,
     onClearInlineError,
   }) => {
+    const subjectsById = useMemo(
+      () => new Map(filteredSubjects.map((subject) => [subject.id, subject])),
+      [filteredSubjects]
+    );
+
+    const handleAddSubjectById = useCallback(
+      (subjectId: string) => {
+        const subject = subjectsById.get(subjectId);
+        if (subject) {
+          onAddSubject(subject);
+        }
+      },
+      [onAddSubject, subjectsById]
+    );
+
     return (
       <View style={styles.section}>
         <View style={[styles.searchBarContainer, styles.searchBarContainerOnboarding]}>
@@ -125,9 +140,10 @@ export const OnboardingSubjectsContent = memo<OnboardingSubjectsContentProps>(
               {filteredSubjects.map((item) => (
                 <SubjectItem
                   key={item.id}
+                  subjectId={item.id}
                   name={item.name}
                   department={item.program || item.department || ''}
-                  onAdd={() => onAddSubject(item)}
+                  onAdd={handleAddSubjectById}
                   isLoading={addingSubjectIds.has(item.id)}
                   variant="onboarding"
                 />
@@ -168,6 +184,21 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
     onClearInlineError,
     isOnboarding = false,
   }) => {
+    const subjectsById = useMemo(
+      () => new Map(filteredSubjects.map((subject) => [subject.id, subject])),
+      [filteredSubjects]
+    );
+
+    const handleAddSubjectById = useCallback(
+      (subjectId: string) => {
+        const subject = subjectsById.get(subjectId);
+        if (subject) {
+          onAddSubject(subject);
+        }
+      },
+      [onAddSubject, subjectsById]
+    );
+
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, isOnboarding ? styles.onboardingSectionTitle : { color: colors.gold }]}>
@@ -204,9 +235,10 @@ export const AvailableSubjectsSection = memo<AvailableSubjectsSectionProps>(
               {filteredSubjects.map((item) => (
                 <SubjectItem
                   key={item.id}
+                  subjectId={item.id}
                   name={item.name}
                   department={item.program || item.department || ''}
-                  onAdd={() => onAddSubject(item)}
+                  onAdd={handleAddSubjectById}
                   isLoading={addingSubjectIds.has(item.id)}
                   variant={isOnboarding ? 'onboarding' : 'default'}
                 />

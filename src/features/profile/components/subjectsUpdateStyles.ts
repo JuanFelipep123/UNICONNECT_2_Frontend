@@ -2,13 +2,22 @@ import { StyleSheet } from 'react-native';
 import { LIGHT_THEME } from '../../../theme/themeContext';
 
 const THEME = LIGHT_THEME;
-const ERROR_BACKGROUND = '#FEE2E2';
-const SHADOW_COLOR = '#000';
+const UI = {
+  pageBackground: '#F2F2F2',
+  errorBackground: '#FEE2E2',
+  shadowColor: '#000000',
+  onboardingMutedText: '#8B9BB3',
+  onboardingSearchBackground: '#F4F6F9',
+  onboardingSearchBorder: '#D5DDE8',
+  onboardingSearchText: '#54647B',
+  onboardingStepPill: '#C8A04D',
+  onboardingDescription: '#3C4A5F',
+} as const;
 
 export const subjectsUpdateStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: UI.pageBackground,
   },
   header: {
     paddingHorizontal: 16,
@@ -16,7 +25,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: SHADOW_COLOR,
+    shadowColor: UI.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -76,7 +85,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     marginBottom: 4,
   },
   onboardingSectionTitle: {
-    color: '#8B9BB3',
+    color: UI.onboardingMutedText,
     fontSize: 13,
     letterSpacing: 2,
     fontWeight: '700',
@@ -123,8 +132,8 @@ export const subjectsUpdateStyles = StyleSheet.create({
   searchBarContainerOnboarding: {
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#F4F6F9',
-    borderColor: '#D5DDE8',
+    backgroundColor: UI.onboardingSearchBackground,
+    borderColor: UI.onboardingSearchBorder,
     paddingHorizontal: 14,
     marginBottom: 18,
   },
@@ -138,7 +147,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   },
   searchInputOnboarding: {
     fontSize: 16,
-    color: '#54647B',
+    color: UI.onboardingSearchText,
   },
   subjectsList: {
     marginTop: 12,
@@ -156,7 +165,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: ERROR_BACKGROUND,
+    backgroundColor: UI.errorBackground,
     borderRadius: 8,
     marginTop: 16,
   },
@@ -177,7 +186,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     borderTopColor: THEME.border,
   },
   buttonContainerOnboarding: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: UI.pageBackground,
     borderTopColor: 'transparent',
     paddingHorizontal: 24,
     paddingTop: 0,
@@ -248,7 +257,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     paddingBottom: 8,
   },
   onboardingStepLabel: {
-    color: '#8B9BB3',
+    color: UI.onboardingMutedText,
     fontSize: 13,
     letterSpacing: 1.6,
     fontWeight: '700',
@@ -265,7 +274,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     width: 32,
     height: 10,
     borderRadius: 8,
-    backgroundColor: '#C8A04D',
+    backgroundColor: UI.onboardingStepPill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -281,7 +290,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
     backgroundColor: THEME.border,
   },
   onboardingDescription: {
-    color: '#3C4A5F',
+    color: UI.onboardingDescription,
     fontSize: 16,
     lineHeight: 30,
     textAlign: 'left',

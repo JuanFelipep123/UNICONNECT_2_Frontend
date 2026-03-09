@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { LIGHT_THEME } from '../../../theme/themeContext';
 
 interface SubjectsSectionProps {
   subjects: string[];
@@ -14,23 +15,26 @@ interface SubjectsSectionProps {
   canRemove?: boolean;
 }
 
-const colors = {
-  primary: '#00284D',
-  gold: '#C5A059',
-  surface: '#FFFFFF',
-};
+const THEME = LIGHT_THEME;
+const UI = {
+  subjectBackground: '#F1F5F9',
+  subjectBorder: '#E2E8F0',
+  subjectText: '#334155',
+  removeIcon: '#CBD5E1',
+  emptyText: '#94A3B8',
+} as const;
 
 export const SubjectsSection = memo<SubjectsSectionProps>(
   ({ subjects, onAddSubject, onRemoveSubject, canRemove = false }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.gold }]}>
+          <Text style={[styles.title, { color: THEME.gold }]}>
             Materias Actuales
           </Text>
-          <TouchableOpacity onPress={onAddSubject} style={styles.addButton}>
-            <MaterialIcons name="add-circle-outline" size={22} color={colors.gold} />
-            <Text style={[styles.addButtonText, { color: colors.gold }]}>
+          <TouchableOpacity onPress={onAddSubject} style={styles.addButton} disabled={!onAddSubject}>
+            <MaterialIcons name="add-circle-outline" size={22} color={THEME.gold} />
+            <Text style={[styles.addButtonText, { color: THEME.gold }]}>
               Añadir materia
             </Text>
           </TouchableOpacity>
@@ -41,14 +45,14 @@ export const SubjectsSection = memo<SubjectsSectionProps>(
             <Text style={styles.emptyText}>No hay materias registradas</Text>
           ) : (
             subjects.map((subject, index) => (
-              <View key={`subject-${index}`} style={styles.subjectTag}>
+              <View key={`${subject}-${index}`} style={styles.subjectTag}>
                 <Text style={styles.subjectText}>{subject}</Text>
                 {canRemove && (
                   <TouchableOpacity
                     onPress={() => onRemoveSubject?.(index)}
                     style={styles.closeButton}
                   >
-                    <MaterialIcons name="cancel" size={18} color="#CBD5E1" />
+                    <MaterialIcons name="cancel" size={18} color={UI.removeIcon} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -93,23 +97,23 @@ const styles = StyleSheet.create({
   subjectTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9', // Gris muy claro para el fondo
+    backgroundColor: UI.subjectBackground,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: UI.subjectBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   subjectText: {
     fontSize: 13,
-    color: '#334155', // Texto oscuro para lectura
+    color: UI.subjectText,
     fontWeight: '500',
   },
   closeButton: {
     marginLeft: 8,
   },
   emptyText: {
-    color: '#94A3B8',
+    color: UI.emptyText,
     fontStyle: 'italic',
     fontSize: 13,
   }
