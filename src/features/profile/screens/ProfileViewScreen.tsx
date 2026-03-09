@@ -33,7 +33,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   profileData,
 }) => {
   const router = useRouter();
-  const footerBottomOffset = 0;
+  const footerBottomOffset = 14;
   const { userId, token } = useAuthStore();
 
   const { profile, loading, error, loadProfile } = useProfileLoad();

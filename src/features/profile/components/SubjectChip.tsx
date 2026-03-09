@@ -4,7 +4,7 @@
  */
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface SubjectChipProps {
   id: string;
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   textOnboarding: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: Platform.OS === 'ios' ? 14 : 15,
   },
   removeButton: {
     padding: 2,

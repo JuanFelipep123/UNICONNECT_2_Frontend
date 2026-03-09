@@ -49,7 +49,7 @@ function resolveFriendlyBackendError(status: number, rawBody: string): string {
   const plainText = stripHtml(body);
   if (plainText.length > 0 && plainText.length < 300) {
     return `Error al sincronizar usuario (${status}): ${plainText}`;
-  }
+  } 
 
   return `Error al sincronizar usuario (${status}).`;
 }

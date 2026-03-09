@@ -71,9 +71,10 @@ export function OnboardingWelcomeScreen() {
   const horizontalPadding = useMemo(() => clamp(screenWidth * 0.055, 18, 24), [screenWidth]);
   const slideWidth = useMemo(() => screenWidth - horizontalPadding * 2, [horizontalPadding, screenWidth]);
   const isCompactDevice = useMemo(() => screenHeight < 740 || screenWidth < 370, [screenHeight, screenWidth]);
+  const imageAspectRatio = 4 / 3;
   const imageHeight = useMemo(
-    () => clamp(screenHeight * (isCompactDevice ? 0.34 : 0.4), isCompactDevice ? 210 : 240, 380),
-    [isCompactDevice, screenHeight]
+    () => clamp(slideWidth / imageAspectRatio, isCompactDevice ? 210 : 240, 340),
+    [imageAspectRatio, isCompactDevice, slideWidth]
   );
   const titleFontSize = useMemo(() => clamp(screenWidth * 0.082, 26, 36), [screenWidth]);
   const titleLineHeight = useMemo(() => Math.round(titleFontSize * 1.12), [titleFontSize]);
@@ -102,11 +103,13 @@ export function OnboardingWelcomeScreen() {
     ({ item }: { item: OnboardingSlide }) => {
       return (
         <View style={[styles.slide, { width: slideWidth }]}>
-          <Image
-            source={{ uri: item.imageUri }}
-            style={[styles.image, { height: imageHeight }]}
-            resizeMode="cover"
-          />
+          <View style={[styles.imageFrame, { height: imageHeight }]}>
+            <Image
+              source={{ uri: item.imageUri }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          </View>
 
           <View style={styles.textBlock}>
             <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleLineHeight }]}>
@@ -238,8 +241,12 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    minHeight: 210,
+    height: '100%',
+  },
+  imageFrame: {
+    width: '100%',
     borderRadius: 12,
+    overflow: 'hidden',
     backgroundColor: '#E5EAF0',
   },
   textBlock: {

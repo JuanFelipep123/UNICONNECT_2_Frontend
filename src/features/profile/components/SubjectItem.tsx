@@ -4,7 +4,7 @@
  */
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface SubjectItemProps {
   name: string;
@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   nameOnboarding: {
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: Platform.OS === 'ios' ? 17 : 18,
+    lineHeight: Platform.OS === 'ios' ? 22 : 24,
     color: '#222F44',
     fontWeight: '600',
     marginBottom: 0,

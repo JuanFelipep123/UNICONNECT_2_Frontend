@@ -167,7 +167,7 @@ export const subjectsUpdateStyles = StyleSheet.create({
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 14,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
