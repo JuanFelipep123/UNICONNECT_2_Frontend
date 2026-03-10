@@ -62,13 +62,14 @@ export const searchHttpService = {
   ): Promise<ApiResponse<SearchSubject[]>> {
     try {
       const url = `${API_BASE_URL}/profile-subjects/${profileId}`;
-      console.log("[searchHttpService] GET", url);
 
       const response = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
         },
       });
 
@@ -99,7 +100,6 @@ export const searchHttpService = {
   ): Promise<ApiResponse<Classmate[]>> {
     try {
       const url = `${API_BASE_URL}/students/classmates/${subjectId}`;
-      console.log("[searchHttpService] GET", url);
 
       const response = await fetch(url, {
         method: "GET",

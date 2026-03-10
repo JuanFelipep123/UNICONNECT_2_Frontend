@@ -3,16 +3,16 @@
  * Orquesta los hooks de materias y compañeros, y coordina la UI.
  */
 import { MaterialIcons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LIGHT_THEME } from "../../../theme/themeContext";
@@ -33,6 +33,7 @@ export const SearchScreen: React.FC = () => {
     subjectsError,
     selectSubject,
     clearSelection,
+    loadSubjects,
   } = useSubjectSearch();
 
   const { classmates, status, error, searchClassmates, reset } =
@@ -40,6 +41,19 @@ export const SearchScreen: React.FC = () => {
 
   // Controla si se muestra el aviso de validación
   const [showValidation, setShowValidation] = useState(false);
+
+  // Recargar materias cada vez que la pantalla vuelve al foco
+  // Esto asegura que si el usuario actualiza sus materias en el perfil,
+  // se reflejen inmediatamente al volver a la búsqueda
+  useFocusEffect(
+    useCallback(() => {
+      // Limpiar selección antes de recargar para evitar inconsistencias
+      clearSelection();
+      reset();
+      setShowValidation(false);
+      loadSubjects();
+    }, [loadSubjects, clearSelection, reset]),
+  );
 
   // Al seleccionar una materia válida: limpia resultados anteriores y oculta el aviso
   const handleSelectSubject = useCallback(
