@@ -1,34 +1,35 @@
-import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import React, { useCallback, useMemo } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  KeyboardAvoidingView,
-  Platform,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../../../store/authStore';
+import { LIGHT_THEME } from '../../../theme/themeContext';
+import { getErrorMessage, parseError } from '../../../utils/errorHandler';
 import { AcademicInfoSection } from '../components/AcademicInfoSection';
 import { ContactInfoSection } from '../components/ContactInfoSection';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { SaveButton } from '../components/SaveButton';
 import { SubjectsSection } from '../components/SubjectsSection';
+import { useLoadProfileSubjects } from '../hooks/useLoadProfileSubjects';
 import { useProfileForm } from '../hooks/useProfileForm';
 import { useProfileLoad } from '../hooks/useProfileLoad';
-import { useLoadProfileSubjects } from '../hooks/useLoadProfileSubjects';
-import { useAuthStore } from '../../../store/authStore';
-import { getErrorMessage, parseError } from '../../../utils/errorHandler';
-import { LIGHT_THEME } from '../../../theme/themeContext';
 
 export const EditProfileScreen = ({ isOnboarding = false }) => {
   const theme = LIGHT_THEME;
   const router = useRouter();
   const params = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
   const { userId, token } = useAuthStore();
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Memoizar datos iniciales para evitar recomputación
   const initialData = useMemo(() => {
@@ -44,7 +45,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     profile,
     loading,
     error,
-    updateCareer,
     updateSemester,
     updateAvatar,
     updatePhone,
@@ -62,7 +62,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   // Esto asegura que los cambios de materias desde SubjectsUpdateScreen se reflejen
   useFocusEffect(
     useCallback(() => {
-      console.log('[EditProfileScreen] Pantalla enfocada - cargando datos...');
       loadProfile();
       if (userId && token) {
         reloadSubjects();
@@ -70,21 +69,28 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
     }, [loadProfile, reloadSubjects, userId, token])
   );
 
-  // Log para confirmar materias
-  useMemo(() => {
-    if (profileSubjects.length > 0) {
-      console.log('[EditProfileScreen] Materias cargadas del backend:', profileSubjects.length, 'items');
-      console.log('[EditProfileScreen] Materias:', profileSubjects);
-    }
-  }, [profileSubjects]);
-
   // Separar lógica de manejo de guardado
   const handleSave = useCallback(async () => {
+    const normalizedPhone = (profile.phone_number || '').trim();
+    const phoneDigits = normalizedPhone.replace(/\D/g, '').length;
+
+    if (!normalizedPhone) {
+      setPhoneError('Debes ingresar un numero de contacto.');
+      return;
+    }
+
+    if (phoneDigits < 10) {
+      setPhoneError('El numero debe contener al menos 10 digitos.');
+      return;
+    }
+
+    setPhoneError(null);
+
     const success = await saveProfile();
     if (success) {
       Alert.alert('¡Éxito!', 'Información actualizada correctamente');
       if (isOnboarding) {
-        router.replace('/(tabs)' as any);
+        router.replace('/(tabs)');
       } else {
         router.back();
       }
@@ -93,7 +99,14 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
       const errorMessage = getErrorMessage(appError);
       Alert.alert('Error', errorMessage);
     }
-  }, [saveProfile, error, isOnboarding, router]);
+  }, [saveProfile, error, isOnboarding, profile.phone_number, router]);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    updatePhone(value);
+    if (phoneError) {
+      setPhoneError(null);
+    }
+  }, [phoneError, updatePhone]);
 
   if (loading && !profile.name) {
     return (
@@ -104,14 +117,14 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
-      <SafeAreaView 
+      <SafeAreaView
         style={[styles.container, { backgroundColor: theme.background }]}
-        edges={['top', 'left', 'right']}
+        edges={['top', 'left', 'right', 'bottom']}
       >
         <Stack.Screen
           options={{
@@ -121,15 +134,17 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
           }}
         />
 
-        {/* Contenedor principal con flex para distribuir el espacio */}
-        <View style={styles.mainContainer}>
-          {/* ScrollView flexible que cede espacio al botón */}
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 112 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          onScrollBeginDrag={Keyboard.dismiss}
+        >
             <ProfileHeader
               avatarUrl={profile.avatar_url || ''}
               onAvatarChange={updateAvatar}
@@ -145,8 +160,7 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
             <View style={styles.section}>
               <AcademicInfoSection
                 career={profile.career || ''}
-                semester={profile.semester || 1}
-                onCareerChange={updateCareer}
+                semester={profile.semester ?? null}
                 onSemesterChange={updateSemester}
               />
             </View>
@@ -154,7 +168,8 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
             <View style={styles.section}>
               <ContactInfoSection
                 phone={profile.phone_number || ''}
-                onPhoneChange={updatePhone}
+                onPhoneChange={handlePhoneChange}
+                phoneError={phoneError}
               />
             </View>
 
@@ -170,9 +185,10 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
                       pathname: '/profile/subjects-update',
                       params: { 
                         initialSubjects: JSON.stringify(profileSubjects),
+                        career: profile.career || '',
                         isEditing: 'true'
                       }
-                    } as any);
+                    });
                   }}
                   onRemoveSubject={(index: number) => {
                     const subject = profileSubjects[index];
@@ -182,23 +198,25 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
               )}
             </View>
 
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-          </ScrollView>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </ScrollView>
 
-          {/* Botón fijo en la parte inferior - siempre visible */}
-          <View style={[
-            styles.buttonContainer, 
-            { 
-              paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 20,
+        {/* Botón fijo en la parte inferior - misma altura que Perfil */}
+        <View
+          style={[
+            styles.buttonContainer,
+            {
+              paddingTop: 10,
+              paddingBottom: Platform.OS === 'ios' ? 10 : 12,
               backgroundColor: theme.background,
-            }
-          ]}>
-            <SaveButton onPress={handleSave} loading={loading} />
-          </View>
+            },
+          ]}
+        >
+          <SaveButton onPress={handleSave} loading={loading} />
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -207,12 +225,6 @@ export const EditProfileScreen = ({ isOnboarding = false }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  mainContainer: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    paddingBottom: 0,
-  },
   center: { justifyContent: 'center', alignItems: 'center' },
   scrollView: { 
     flex: 1,
@@ -245,8 +257,14 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   buttonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 14,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    minHeight: 72,
+    justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
   },

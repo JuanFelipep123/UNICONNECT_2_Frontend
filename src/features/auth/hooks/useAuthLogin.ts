@@ -222,6 +222,7 @@ export function useAuthLogin() {
         name,
         userId: session.userId,
         token: session.token,
+        needsOnboarding: session.needsOnboarding,
       };
     } catch (error) {
       const authError = error as AuthError;

@@ -1,13 +1,22 @@
 import { StyleSheet } from 'react-native';
-import { LIGHT_THEME } from '../../../theme/themeContext';
+import { type ThemeColors } from '../../../theme/themeContext';
 
-const THEME = LIGHT_THEME;
-const ERROR_BACKGROUND = '#FEE2E2';
-const SHADOW_COLOR = '#000';
+const UI = {
+  pageBackground: '#F2F2F2',
+  errorBackground: '#FEE2E2',
+  shadowColor: '#000000',
+  onboardingMutedText: '#8B9BB3',
+  onboardingSearchBackground: '#F4F6F9',
+  onboardingSearchBorder: '#D5DDE8',
+  onboardingSearchText: '#54647B',
+  onboardingStepPill: '#C8A04D',
+  onboardingDescription: '#3C4A5F',
+} as const;
 
-export const subjectsUpdateStyles = StyleSheet.create({
+export const createSubjectsUpdateStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: UI.pageBackground,
   },
   header: {
     paddingHorizontal: 16,
@@ -15,16 +24,29 @@ export const subjectsUpdateStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: SHADOW_COLOR,
+    shadowColor: UI.shadowColor,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
+  headerOnboarding: {
+    height: 110,
+    paddingHorizontal: 22,
+    paddingVertical: 0,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  headerLeftOnboarding: {
+    flex: 1,
+    alignSelf: 'stretch',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   backButton: {
     padding: 8,
@@ -32,17 +54,26 @@ export const subjectsUpdateStyles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: THEME.surface,
+    color: colors.surface,
+  },
+  headerTitleOnboarding: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 24,
+    paddingTop: 10,
   },
   section: {
     marginBottom: 24,
+  },
+  currentSectionSpacing: {
+    marginTop: 14,
   },
   sectionHeader: {
     marginBottom: 16,
@@ -52,37 +83,58 @@ export const subjectsUpdateStyles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
+  onboardingSectionTitle: {
+    color: UI.onboardingMutedText,
+    fontSize: 13,
+    letterSpacing: 2,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginTop: 26,
+    marginBottom: 16,
+  },
   sectionSubtitle: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
   },
   chipContainer: {
     marginTop: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
+  },
+  onboardingChipContainer: {
+    marginTop: 6,
+    marginBottom: 4,
   },
   emptyText: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
     fontStyle: 'italic',
     paddingVertical: 12,
   },
   divider: {
     height: 1,
-    backgroundColor: THEME.border,
+    backgroundColor: colors.border,
     marginVertical: 8,
   },
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    backgroundColor: THEME.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: THEME.border,
+    borderColor: colors.border,
     borderRadius: 12,
     height: 48,
     marginBottom: 16,
+  },
+  searchBarContainerOnboarding: {
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: UI.onboardingSearchBackground,
+    borderColor: UI.onboardingSearchBorder,
+    paddingHorizontal: 14,
+    marginBottom: 18,
   },
   searchIcon: {
     marginRight: 8,
@@ -90,14 +142,18 @@ export const subjectsUpdateStyles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: THEME.text,
+    color: colors.text,
+  },
+  searchInputOnboarding: {
+    fontSize: 16,
+    color: UI.onboardingSearchText,
   },
   subjectsList: {
     marginTop: 12,
   },
   noResultsText: {
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
     textAlign: 'center',
     paddingVertical: 24,
     fontStyle: 'italic',
@@ -108,25 +164,31 @@ export const subjectsUpdateStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: ERROR_BACKGROUND,
+    backgroundColor: UI.errorBackground,
     borderRadius: 8,
     marginTop: 16,
   },
   errorText: {
     flex: 1,
     fontSize: 13,
-    color: THEME.error,
+    color: colors.error,
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 14,
     left: 0,
     right: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: THEME.background,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: THEME.border,
+    borderTopColor: colors.border,
+  },
+  buttonContainerOnboarding: {
+    backgroundColor: UI.pageBackground,
+    borderTopColor: 'transparent',
+    paddingHorizontal: 24,
+    paddingTop: 0,
   },
   saveButton: {
     flexDirection: 'row',
@@ -137,10 +199,22 @@ export const subjectsUpdateStyles = StyleSheet.create({
     borderRadius: 12,
     minHeight: 50,
   },
+  saveButtonOnboarding: {
+    height: 54,
+    borderRadius: 14,
+    marginTop: 28,
+    marginBottom: 24,
+  },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  saveButtonTextOnboarding: {
+    fontSize: 16,
+    letterSpacing: 0.5,
+    fontWeight: '700',
   },
   center: {
     justifyContent: 'center',
@@ -149,18 +223,18 @@ export const subjectsUpdateStyles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 14,
-    color: THEME.label,
+    color: colors.label,
   },
   errorMessage: {
     marginTop: 16,
     fontSize: 14,
-    color: THEME.error,
+    color: colors.error,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
   errorDetails: {
     fontSize: 12,
-    color: THEME.label,
+    color: colors.label,
     textAlign: 'center',
     paddingHorizontal: 16,
     fontStyle: 'italic',
@@ -174,6 +248,53 @@ export const subjectsUpdateStyles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: THEME.surface,
+    color: colors.surface,
+  },
+  onboardingHeroContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 38,
+    paddingBottom: 8,
+  },
+  onboardingStepLabel: {
+    color: UI.onboardingMutedText,
+    fontSize: 13,
+    letterSpacing: 1.6,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  onboardingDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  onboardingDotPill: {
+    width: 32,
+    height: 10,
+    borderRadius: 8,
+    backgroundColor: UI.onboardingStepPill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onboardingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  onboardingDotActive: {
+    backgroundColor: colors.gold,
+  },
+  onboardingDotInactive: {
+    backgroundColor: colors.border,
+  },
+  onboardingDescription: {
+    color: UI.onboardingDescription,
+    fontSize: 16,
+    lineHeight: 30,
+    textAlign: 'left',
+    marginTop: 22,
   },
 });
+
+export type SubjectsUpdateStyles = ReturnType<typeof createSubjectsUpdateStyles>;

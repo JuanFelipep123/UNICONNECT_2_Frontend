@@ -1,18 +1,18 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import {
-  SafeAreaView,
-  useSafeAreaInsets,
+    SafeAreaView,
 } from "react-native-safe-area-context";
 import { useAuthStore } from "../../../store/authStore";
 import { LIGHT_THEME } from "../../../theme/themeContext";
@@ -33,7 +33,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   profileData,
 }) => {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const footerBottomOffset = 14;
   const { userId, token } = useAuthStore();
 
   const { profile, loading, error, loadProfile } = useProfileLoad();
@@ -55,13 +55,10 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   );
 
   // Usar datos pasados por props si están disponibles, de lo contrario usar los cargados
-  const displayProfile = useMemo(() => {
-    const data = profileData || profile;
-    return data;
-  }, [profileData, profile]);
+  const displayProfile = profileData || profile;
 
-  // Log de materias cargadas
-  useMemo(() => {
+  // Logs de depuración al cambiar materias
+  useEffect(() => {
     if (profileSubjects.length > 0) {
       console.log(
         "[ProfileViewScreen] Materias cargadas del backend:",
@@ -97,7 +94,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right", "bottom"]}>
       <Stack.Screen
         options={{
           title: "Perfil",
@@ -112,7 +109,7 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
         // Ajustamos el padding inferior del scroll para que el contenido no quede detrás del botón
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 100 + insets.bottom },
+          { paddingBottom: 112 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -179,8 +176,8 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
           styles.footer,
           {
             backgroundColor: colors.surface,
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 20,
-            height: 80 + (insets.bottom > 0 ? insets.bottom : 0),
+            paddingBottom: Platform.OS === 'ios' ? 10 : 12,
+            bottom: footerBottomOffset,
           },
         ]}
       >
@@ -194,8 +191,8 @@ export const ProfileViewScreen: React.FC<ProfileViewScreenProps> = ({
           }}
           activeOpacity={0.9}
         >
-          <MaterialIcons name="edit" size={20} color={colors.gold} />
-          <Text style={[styles.editButtonText, { color: colors.gold }]}>EDITAR PERFIL</Text>
+          <MaterialIcons name="edit" size={20} color="#FFFFFF" />
+          <Text style={[styles.editButtonText, { color: '#FFFFFF' }]}>EDITAR PERFIL</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -222,12 +219,14 @@ const styles = StyleSheet.create({
   university: { fontSize: 14, fontWeight: "500" },
   section: { borderRadius: 12, padding: 16, marginBottom: 16, elevation: 1 },
   footer: {
-    position: "absolute",
-    bottom: 0,
+    position: 'absolute',
     left: 0,
     right: 0,
+    bottom: 0,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
+    minHeight: 72,
+    justifyContent: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -238,6 +237,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
+    minHeight: 52,
   },
   editButton: {
     borderWidth: 0,

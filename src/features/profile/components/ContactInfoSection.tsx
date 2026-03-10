@@ -1,15 +1,16 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback } from 'react';
 import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 
 interface ContactInfoSectionProps {
   phone: string;
   onPhoneChange: (value: string) => void;
+  phoneError?: string | null;
 }
 
 const colors = {
@@ -21,7 +22,7 @@ const colors = {
 };
 
 export const ContactInfoSection = memo<ContactInfoSectionProps>(
-  ({ phone, onPhoneChange }) => {
+  ({ phone, onPhoneChange, phoneError }) => {
     // Memoizar el handler de cambio de teléfono
     const handlePhoneChange = useCallback((text: string) => {
       const onlyNumbers = text.replace(/\D/g, '');
@@ -36,7 +37,7 @@ export const ContactInfoSection = memo<ContactInfoSectionProps>(
 
         <View style={styles.fieldContainer}>
           <Text style={[styles.label, { color: colors.label }]}>
-            Número Telefónico
+            Número de Teléfono
           </Text>
           <View style={styles.inputWrapper}>
             <MaterialIcons
@@ -55,6 +56,7 @@ export const ContactInfoSection = memo<ContactInfoSectionProps>(
               style={styles.input}
             />
           </View>
+          {phoneError ? <Text style={styles.fieldError}>{phoneError}</Text> : null}
         </View>
       </View>
     );
@@ -103,5 +105,12 @@ const styles = StyleSheet.create({
     height: '100%',
     fontSize: 15,
     color: '#1E293B',
+  },
+  fieldError: {
+    marginTop: 6,
+    marginLeft: 4,
+    color: '#B42318',
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

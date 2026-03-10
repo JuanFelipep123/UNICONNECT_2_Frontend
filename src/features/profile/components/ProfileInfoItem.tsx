@@ -1,13 +1,13 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 
 interface ProfileInfoItemProps {
-  icon: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   value: string;
 }
@@ -30,7 +30,7 @@ export const ProfileInfoItem: React.FC<ProfileInfoItemProps> = ({
   return (
     <View style={styles.container}>
       <View style={[styles.iconContainer, { backgroundColor: colors.gold + '15' }]}>
-        <MaterialIcons name={icon as any} size={24} color={colors.gold} />
+        <MaterialIcons name={icon} size={24} color={colors.gold} />
       </View>
       <View style={styles.textContainer}>
         <Text style={[styles.label, { color: colors.label }]}>

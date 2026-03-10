@@ -29,11 +29,13 @@ export interface AuthenticatedUser {
   name: string;
   userId: string;
   token: string;
+  needsOnboarding: boolean;
 }
 
 export interface AuthSession {
   userId: string;
   token: string;
+  needsOnboarding: boolean;
 }
 
 export interface AuthSyncResponse {
@@ -41,6 +43,8 @@ export interface AuthSyncResponse {
   access_token?: string;
   userId?: string;
   user_id?: string;
+  needsOnboarding?: boolean;
+  needs_onboarding?: boolean;
   profile_id?: string;
   id?: string;
   data?: AuthSyncResponse;

@@ -55,8 +55,7 @@ export const useProfileForm = () => {
     setError(null);
 
     try {
-      // 1. MAPEAMOS LOS DATOS EXACTOS DE LA TABLA 'perfil'
-      // Ya no necesitamos el 'as any' porque la interfaz ya coincide
+      // 1. Mapeamos los datos exactos de la tabla 'perfil'
       const profileToUpdate = {
         nombre: profile.nombre,
         apellido: profile.apellido, // Singular

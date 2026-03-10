@@ -18,7 +18,7 @@ interface UseProfileSaveReturn {
 export const useProfileSave = (): UseProfileSaveReturn => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { token, userId } = useAuthStore();
+  const { token, userId, triggerProfileRefresh } = useAuthStore();
 
   const saveProfile = useCallback(async (profile: ProfileData): Promise<boolean> => {
     if (!token || !userId) {
@@ -31,23 +31,51 @@ export const useProfileSave = (): UseProfileSaveReturn => {
     setError(null);
 
     try {
-      const { career, semester, phone_number, avatar_url } = profile;
+      const { semester, phone_number, avatar_url } = profile;
+
+      let persistedAvatarUrl = avatar_url || null;
+
+      const isLocalAvatarUri =
+        typeof avatar_url === 'string' &&
+        (avatar_url.startsWith('file://') || avatar_url.startsWith('content://'));
+
+      if (isLocalAvatarUri) {
+        const uploadResponse = await profileHttpService.uploadAvatar(userId, avatar_url as string, token);
+        if (!uploadResponse.success) {
+          setError(uploadResponse.error || 'No se pudo subir el avatar.');
+          return false;
+        }
+
+        persistedAvatarUrl = uploadResponse.data?.url || null;
+
+        // Algunos backends suben correctamente pero no retornan la URL en el payload.
+        if (!persistedAvatarUrl) {
+          const refreshed = await profileHttpService.getProfileById(userId, token);
+          if (refreshed.success && refreshed.data?.avatar_url) {
+            persistedAvatarUrl = refreshed.data.avatar_url;
+          }
+        }
+
+        if (!persistedAvatarUrl) {
+          setError('La imagen se subio, pero el backend no retorno una URL publica del avatar.');
+          return false;
+        }
+      }
 
       const datosParaBackend = {
-        career: career || null,
         semester: semester || null,
         phone_number: phone_number || null,
-        avatar_url: avatar_url || null,
+        avatar_url: persistedAvatarUrl,
       };
 
       const response = await profileHttpService.updateProfile(userId, datosParaBackend, token);
 
       if (!response.success) {
-        const appError = parseError({ message: response.error });
-        const errorMessage = getErrorMessage(appError);
-        setError(errorMessage);
+        setError(response.error || 'No se pudo guardar el perfil.');
         return false;
       }
+
+      triggerProfileRefresh();
 
       return true;
     } catch (err) {
@@ -58,7 +86,7 @@ export const useProfileSave = (): UseProfileSaveReturn => {
     } finally {
       setSaving(false);
     }
-  }, [token, userId]);
+  }, [token, userId, triggerProfileRefresh]);
 
   const clearError = useCallback(() => {
     setError(null);

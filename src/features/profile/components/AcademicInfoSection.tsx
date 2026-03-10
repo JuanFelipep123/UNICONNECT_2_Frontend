@@ -1,120 +1,131 @@
-import { Picker } from '@react-native-picker/picker';
-import React, { memo, useCallback } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { CAREERS, SEMESTERS } from '../types/profile';
+import { SEMESTERS } from '../types/profile';
 
 interface AcademicInfoSectionProps {
   career: string;
-  semester: number;
-  onCareerChange: (value: string) => void;
+  semester: number | string | null;
   onSemesterChange: (value: number) => void;
 }
 
 const colors = {
-  light: {
-    background: '#F8F9FA',
-    surface: '#FFFFFF',
-    text: '#1E293B',
-    label: '#64748B',
-    border: '#E2E8F0',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
-  dark: {
-    background: '#0F172A',
-    surface: '#1E293B',
-    text: '#F1F5F9',
-    label: '#94A3B8',
-    border: '#334155',
-    primary: '#00284D',
-    gold: '#C5A059',
-  },
+  surface: '#FFFFFF',
+  text: '#1F2A3C',
+  label: '#6B798F',
+  border: '#D5DDE8',
+  gold: '#C5A059',
 };
 
 export const AcademicInfoSection = memo<AcademicInfoSectionProps>(
-  ({ career, semester, onCareerChange, onSemesterChange }) => {
-    const colorScheme = useColorScheme();
-    const theme = colorScheme === 'dark' ? colors.dark : colors.light;
+  ({ career, semester, onSemesterChange }) => {
+    const [isSemesterDropdownOpen, setSemesterDropdownOpen] = useState(false);
 
-    const semesterString = semester ? String(semester) : '';
+    const semesterString = useMemo(() => {
+      if (semester === null || semester === undefined) {
+        return '';
+      }
+
+      const parsed =
+        typeof semester === 'number'
+          ? semester
+          : Number.parseInt(String(semester), 10);
+
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 10) {
+        return '';
+      }
+
+      return String(parsed);
+    }, [semester]);
+
     const careerString = career || '';
+    const selectedSemesterLabel = semesterString ? `${semesterString}` : 'Selecciona semestre';
 
     // Memoizar handlers para evitar recreación innecesaria
-    const handleSemesterChange = useCallback((value: string) => {
-      const semesterNumber = value ? parseInt(value, 10) : 0;
+    const handleSemesterChange = useCallback((value: string | number) => {
+      const semesterNumber = value ? Number.parseInt(String(value), 10) : 0;
       onSemesterChange(semesterNumber);
+      setSemesterDropdownOpen(false);
     }, [onSemesterChange]);
-
-    const handleCareerChange = useCallback((value: string) => {
-      onCareerChange(value);
-    }, [onCareerChange]);
 
     return (
       <View style={styles.container}>
-        <Text style={[styles.title, { color: theme.gold }]}>
+        <Text style={[styles.title, { color: colors.gold }]}>
           Información Académica
         </Text>
 
         {/* Carrera */}
         <View style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: theme.label }]}>Carrera</Text>
+          <Text style={[styles.label, { color: colors.label }]}>Carrera</Text>
           <View
             style={[
-              styles.pickerContainer,
+              styles.readOnlyContainer,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
           >
-            <Picker
-              selectedValue={careerString}
-              onValueChange={handleCareerChange}
-              style={[styles.picker, { color: theme.text }]}
-              dropdownIconColor={theme.gold}
-            >
-              <Picker.Item label="Selecciona una carrera" value="" />
-              {CAREERS.map((c) => (
-                <Picker.Item key={c.value} label={c.label} value={c.value} />
-              ))}
-            </Picker>
+            <Text style={[styles.readOnlyValue, { color: colors.text }]}>
+              {careerString || 'No especificada'}
+            </Text>
           </View>
+          <Text style={styles.readOnlyHint}>La carrera no se puede modificar.</Text>
         </View>
 
         {/* Semestre */}
         <View style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: theme.label }]}>
+          <Text style={[styles.label, { color: colors.label }]}>
             Semestre Actual
           </Text>
-          <View
+          <Pressable
+            onPress={() => setSemesterDropdownOpen((prev) => !prev)}
             style={[
-              styles.pickerContainer,
+              styles.selectContainer,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
               },
             ]}
           >
-            <Picker
-              selectedValue={semesterString}
-              onValueChange={handleSemesterChange}
-              style={[styles.picker, { color: theme.text }]}
-              dropdownIconColor={theme.gold}
+            <Text
+              style={[
+                styles.selectText,
+                { color: semesterString ? colors.text : colors.label },
+              ]}
             >
-              {SEMESTERS.map((s) => (
-                <Picker.Item
-                  key={s.value}
-                  label={s.label}
-                  value={s.value}
-                />
-              ))}
-            </Picker>
-          </View>
+              {selectedSemesterLabel}
+            </Text>
+            <MaterialIcons name="keyboard-arrow-down" size={22} color={colors.gold} />
+          </Pressable>
+
+          {isSemesterDropdownOpen ? (
+            <View style={styles.listContainer}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
+                {SEMESTERS.map((s) => (
+                  <TouchableOpacity
+                    key={s.value}
+                    style={styles.listItem}
+                    onPress={() => handleSemesterChange(s.value)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.listItemText}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -129,12 +140,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 16,
     fontFamily: 'Playfair Display',
   },
   fieldContainer: {
     marginBottom: 16,
+    position: 'relative',
   },
   label: {
     fontSize: 12,
@@ -144,13 +156,55 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  pickerContainer: {
+  selectContainer: {
     borderWidth: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
+    borderRadius: 14,
+    minHeight: 56,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectText: {
+    flex: 1,
+    color: '#1F2A3C',
+    fontSize: 18,
+  },
+  readOnlyContainer: {
+    borderWidth: 1,
+    borderRadius: 14,
+    minHeight: 56,
+    paddingHorizontal: 14,
     justifyContent: 'center',
   },
-  picker: {
-    height: 56,
+  readOnlyValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  readOnlyHint: {
+    marginTop: 6,
+    marginLeft: 8,
+    fontSize: 12,
+    color: '#6B798F',
+    fontStyle: 'italic',
+  },
+  listContainer: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#D5DDE8',
+    backgroundColor: '#FFFFFF',
+    maxHeight: 220,
+    overflow: 'hidden',
+  },
+  listItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF2F7',
+  },
+  listItemText: {
+    color: '#293447',
+    fontSize: 16,
   },
 });
