@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { type ThemeColors } from '../../../theme/themeContext';
 import { type SubjectsUpdateStyles } from './subjectsUpdateStyles';
 
@@ -86,30 +86,40 @@ export const SubjectsUpdateSaveFooter = ({
   onSave,
   colors,
   styles,
-}: SubjectsUpdateSaveFooterProps) => (
-  <View
-    style={[
-      styles.buttonContainer,
-      isOnboarding ? styles.buttonContainerOnboarding : null,
-      { paddingBottom: isOnboarding ? Math.max(0, insetsBottom) : Math.max(16, insetsBottom) },
-    ]}
-  >
-    <TouchableOpacity
-      style={[styles.saveButton, isOnboarding ? styles.saveButtonOnboarding : null, { backgroundColor: colors.primary }]}
-      onPress={onSave}
-      disabled={saving}
-      activeOpacity={0.85}
+}: SubjectsUpdateSaveFooterProps) => {
+  const isIosOnboarding = isOnboarding && Platform.OS === 'ios';
+
+  return (
+    <View
+      style={[
+        styles.buttonContainer,
+        isOnboarding ? styles.buttonContainerOnboarding : null,
+        isIosOnboarding ? { bottom: 0, paddingTop: 8 } : null,
+        { paddingBottom: isOnboarding ? Math.max(0, insetsBottom) : Math.max(16, insetsBottom) },
+      ]}
     >
-      {saving ? (
-        <ActivityIndicator color={colors.surface} />
-      ) : (
-        <>
-          {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color={colors.surface} /> : null}
-          <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: colors.surface }]}>
-            {isOnboarding ? 'FINALIZAR REGISTRO' : 'GUARDAR CAMBIOS'}
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
-  </View>
-);
+      <TouchableOpacity
+        style={[
+          styles.saveButton,
+          isOnboarding ? styles.saveButtonOnboarding : null,
+          isIosOnboarding ? { marginTop: 8, marginBottom: 0 } : null,
+          { backgroundColor: colors.primary },
+        ]}
+        onPress={onSave}
+        disabled={saving}
+        activeOpacity={0.85}
+      >
+        {saving ? (
+          <ActivityIndicator color={colors.surface} />
+        ) : (
+          <>
+            {!isOnboarding ? <MaterialIcons name="check-circle" size={20} color={colors.surface} /> : null}
+            <Text style={[styles.saveButtonText, isOnboarding ? styles.saveButtonTextOnboarding : null, { color: colors.surface }]}>
+              {isOnboarding ? 'FINALIZAR REGISTRO' : 'GUARDAR CAMBIOS'}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
