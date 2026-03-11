@@ -2,8 +2,9 @@
  * Tarjeta individual de un compañero de clase.
  * Muestra nombre, carrera y semestre. Avatar con fallback de iniciales.
  */
+import { useRouter } from "expo-router";
 import React, { memo } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LIGHT_THEME } from "../../../theme/themeContext";
 import type { Classmate } from "../types/search";
 
@@ -21,10 +22,20 @@ const getInitials = (name: string): string =>
     .join("");
 
 export const ClassmateCard = memo<ClassmateCardProps>(({ classmate }) => {
+  const router = useRouter();
   const initials = getInitials(classmate.name);
 
+  const handlePress = () => {
+    // @ts-ignore - La ruta dinámica es válida en runtime
+    router.push(`/public-profile/${classmate.id}`);
+  };
+
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      activeOpacity={0.7}
+      onPress={handlePress}
+    >
       <View style={styles.avatarContainer}>
         {classmate.avatar_url ? (
           <Image
@@ -50,7 +61,7 @@ export const ClassmateCard = memo<ClassmateCardProps>(({ classmate }) => {
           <Text style={styles.semester}>Semestre {classmate.semester}</Text>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
