@@ -84,7 +84,7 @@ export const useProfileForm = () => {
       }
 
       return true;
-    } catch (err) {
+    } catch {
       setError("Error de red al intentar guardar");
       return false;
     } finally {
