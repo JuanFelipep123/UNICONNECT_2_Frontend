@@ -24,6 +24,11 @@ export const useLoadAvailableSubjects = (
   token: string,
   options: UseLoadAvailableSubjectsOptions = {}
 ): UseLoadAvailableSubjectsReturn => {
+  const career = options.career;
+  const program = options.program;
+  const search = options.search;
+  const limit = options.limit;
+
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +47,12 @@ export const useLoadAvailableSubjects = (
 
     try {
       console.log('[useLoadAvailableSubjects] Cargando materias disponibles...');
-      const response = await profileHttpService.getAvailableSubjects(token, options);
+      const response = await profileHttpService.getAvailableSubjects(token, {
+        career,
+        program,
+        search,
+        limit,
+      });
 
       if (response.success && response.data) {
         console.log('[useLoadAvailableSubjects] Materias disponibles cargadas:', response.data);
@@ -65,7 +75,10 @@ export const useLoadAvailableSubjects = (
       setLoading(false);
     }
   }, [
-    options,
+    career,
+    limit,
+    program,
+    search,
     token,
   ]);
 
