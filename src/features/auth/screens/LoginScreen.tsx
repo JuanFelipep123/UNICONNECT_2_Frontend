@@ -30,7 +30,7 @@ const LOGIN_COLORS = {
 };
 
 export function LoginScreen() {
-  const { canLogin, errorMessage, isLoading, handleLogin } = useAuthLogin();
+  const { canLogin, errorMessage, isLoading, handleLogin, loginUnavailableReason } = useAuthLogin();
   const { setSession } = useAuthStore();
   
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -124,6 +124,10 @@ export function LoginScreen() {
               Solo correos <Text style={styles.validationDomain}>@ucaldas.edu.co</Text>
             </Text>
           </View>
+
+          {!canLogin && loginUnavailableReason ? (
+            <Text style={styles.loginUnavailableText}>{loginUnavailableReason}</Text>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -235,5 +239,12 @@ const styles = StyleSheet.create({
   validationDomain: {
     color: LOGIN_COLORS.warning,
     fontWeight: '700',
+  },
+  loginUnavailableText: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: LOGIN_COLORS.error,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

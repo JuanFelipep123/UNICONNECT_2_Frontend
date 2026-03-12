@@ -1,11 +1,10 @@
-import { eventsHttpService } from '@/src/features/events/services/eventsHttpService';
+import { useEventsFeed } from '@/src/features/events/hooks/useEventsFeed';
 import type { EventCardSummary } from '@/src/features/events/types/events';
-import { useAuthStore } from '@/src/store/authStore';
 import { colors } from '@/src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -105,55 +104,8 @@ function EventCard({
 }
 
 export default function HomeScreen() {
-  const { token } = useAuthStore();
   const router = useRouter();
-  const [events, setEvents] = useState<EventCardSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const hasEvents = useMemo(() => events.length > 0, [events.length]);
-
-  const loadEvents = useCallback(
-    async (refresh = false) => {
-      if (!token) {
-        setEvents([]);
-        setError('No se encontró sesión activa para consultar eventos.');
-        setIsLoading(false);
-        setIsRefreshing(false);
-        return;
-      }
-
-      if (refresh) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-
-      const response = await eventsHttpService.getEvents(token, 20);
-
-      if (response.success && response.data) {
-        setEvents(response.data);
-        setError(null);
-      } else {
-        setEvents([]);
-        setError(response.error ?? 'No se pudieron cargar los eventos.');
-      }
-
-      if (refresh) {
-        setIsRefreshing(false);
-      } else {
-        setIsLoading(false);
-      }
-    },
-    [token]
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      loadEvents();
-    }, [loadEvents])
-  );
+  const { events, isLoading, isRefreshing, error, hasEvents, refreshEvents } = useEventsFeed(20);
 
   const handleOpenEvent = useCallback(
     (eventId: string) => {
@@ -177,7 +129,7 @@ export default function HomeScreen() {
         <Text style={styles.centerStateText}>{error}</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => loadEvents(true)}
+          onPress={refreshEvents}
           accessibilityRole="button"
           accessibilityLabel="Reintentar carga de eventos"
         >
@@ -204,7 +156,7 @@ export default function HomeScreen() {
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={() => loadEvents(true)} />
+        <RefreshControl refreshing={isRefreshing} onRefresh={refreshEvents} />
       }
       ListHeaderComponent={
         <View style={styles.headerContainer}>

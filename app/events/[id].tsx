@@ -1,11 +1,9 @@
-import { eventsHttpService } from '@/src/features/events/services/eventsHttpService';
-import type { EventDetail } from '@/src/features/events/types/events';
-import { useAuthStore } from '@/src/store/authStore';
+import { useEventDetail } from '@/src/features/events/hooks/useEventDetail';
 import { colors } from '@/src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useMemo } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -79,42 +77,11 @@ function InfoRow({
 }
 
 export default function EventDetailRoute() {
-  const { token } = useAuthStore();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const [event, setEvent] = useState<EventDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const eventId = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
-
-  const loadEventDetail = useCallback(async () => {
-    if (!token || !eventId) {
-      setError('No se pudo identificar el evento.');
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    const response = await eventsHttpService.getEventById(eventId, token);
-
-    if (response.success && response.data) {
-      setEvent(response.data);
-      setError(null);
-    } else {
-      setEvent(null);
-      setError(response.error ?? 'No fue posible cargar el detalle del evento.');
-    }
-
-    setIsLoading(false);
-  }, [eventId, token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadEventDetail();
-    }, [loadEventDetail])
-  );
+  const { event, isLoading, error, retry } = useEventDetail(eventId);
 
   if (isLoading) {
     return (
@@ -129,7 +96,7 @@ export default function EventDetailRoute() {
     return (
       <SafeAreaView style={styles.centerState}>
         <Text style={styles.centerStateText}>{error ?? 'No se encontró el evento.'}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadEventDetail}>
+        <TouchableOpacity style={styles.retryButton} onPress={retry}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.backButtonSecondary} onPress={() => router.back()}>

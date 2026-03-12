@@ -65,10 +65,7 @@ export const useLoadAvailableSubjects = (
       setLoading(false);
     }
   }, [
-    options.career,
-    options.limit,
-    options.program,
-    options.search,
+    options,
     token,
   ]);
 

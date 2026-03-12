@@ -37,6 +37,22 @@ export function useAuthLogin() {
     []
   );
 
+  const configValidation = useMemo(
+    () =>
+      validateAuthConfig({
+        domain: authConfig.domain,
+        clientId: authConfig.clientId,
+        authSyncUrl: authConfig.authSyncUrl,
+      }),
+    [authConfig.authSyncUrl, authConfig.clientId, authConfig.domain]
+  );
+
+  const hasValidConfig = configValidation.isValid;
+  const configMissingVars = useMemo(
+    () => configValidation.missing ?? [],
+    [configValidation.missing]
+  );
+
   // Detectar si estamos en Expo Go
   const isExpoGo = useMemo(
     () =>
@@ -156,14 +172,8 @@ export function useAuthLogin() {
       setErrorMessage(null);
 
       // Validar configuración
-      const configValidation = validateAuthConfig({
-        domain: authConfig.domain,
-        clientId: authConfig.clientId,
-        authSyncUrl: authConfig.authSyncUrl,
-      });
-
-      if (!configValidation.isValid) {
-        throw createConfigError(configValidation.missing!);
+      if (!hasValidConfig) {
+        throw createConfigError(configMissingVars);
       }
 
       if (!discovery || !request) {
@@ -259,7 +269,9 @@ export function useAuthLogin() {
     }
   }, [
     authConfig,
+    configMissingVars,
     discovery,
+    hasValidConfig,
     isExpoGo,
     promptAsync,
     redirectUri,
@@ -270,7 +282,12 @@ export function useAuthLogin() {
   return {
     isLoading,
     errorMessage,
-    canLogin: Boolean(request) && !isLoading,
+    canLogin: Boolean(request) && Boolean(discovery) && hasValidConfig && !isLoading,
+    loginUnavailableReason: !hasValidConfig
+      ? `Configuración incompleta: ${configValidation.missing?.join(', ')}`
+      : !request || !discovery
+        ? 'Inicializando autenticación...'
+        : null,
     redirectUri,
     handleLogin,
   };
