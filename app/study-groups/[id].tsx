@@ -3,22 +3,14 @@
  * UI Shell temporal para el detalle del grupo
  */
 
+import { groupsColors } from '@/src/features/groups/constants/colors';
 import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const colors = {
-  primary: '#002147',
-  accent: '#C5A021',
-  text: '#1F2A3C',
-  label: '#6B798F',
-  lightBg: '#F5F7F8',
-  surface: '#FFFFFF',
-  border: '#E0E8F0',
-  danger: '#DC2626',
-};
+const colors = groupsColors;
 
 const tabs = ['Miembros', 'Horarios', 'Archivos'];
 

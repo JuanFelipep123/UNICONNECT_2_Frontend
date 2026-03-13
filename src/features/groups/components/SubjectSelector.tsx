@@ -7,14 +7,15 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
-    FlatList,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { groupsColors } from '../constants/colors';
 import type { Subject } from '../services/subjectsHttpService';
 
 interface SubjectSelectorProps {
@@ -25,16 +26,7 @@ interface SubjectSelectorProps {
   isLoading?: boolean;
 }
 
-const colors = {
-  primary: '#002147',
-  accent: '#C5A021',
-  surface: '#FFFFFF',
-  text: '#1F2A3C',
-  label: '#6B798F',
-  border: '#E0E8F0',
-  lightBg: '#F8F9FA',
-  overlay: 'rgba(0, 0, 0, 0.5)',
-};
+const colors = groupsColors;
 
 /**
  * Componente personalizado de selector de materias

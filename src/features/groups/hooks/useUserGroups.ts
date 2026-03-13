@@ -93,9 +93,12 @@ export const useUserGroups = (): UseUserGroupsReturn => {
     }
   }, [token]);
 
+  // Efecto que SOLO depende de token, no de reload
+  // Esto evita infinite loop: token cambia → useEffect corre → reload() es llamado
+  // Pero reload() no está en las dependencias, así que NO causará otro render
   useEffect(() => {
     reload();
-  }, [reload]);
+  }, [token]);
 
   // Separar grupos: administrados vs participante
   const adminGroups = allGroups.filter((g) => g.is_admin);

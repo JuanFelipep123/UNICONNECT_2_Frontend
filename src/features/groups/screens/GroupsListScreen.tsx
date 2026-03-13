@@ -16,18 +16,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { groupsColors } from '../constants/colors';
 import { useUserGroups } from '../hooks/useUserGroups';
 import type { StudyGroup } from '../types/groups';
 
-const colors = {
-  primary: '#002147',
-  accent: '#C5A021',
-  surface: '#FFFFFF',
-  text: '#1F2A3C',
-  label: '#6B798F',
-  lightBg: '#F8F9FA',
-  border: '#E0E8F0',
-};
+const colors = groupsColors;
 
 interface TabType {
   id: 'admin' | 'participant';
@@ -93,9 +86,10 @@ const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => v
 GroupCardItem.displayName = 'GroupCardItem';
 
 /**
- * Componente de estado vacío - se muestra cuando el usuario no pertenece a ningún grupo
+ * Componente de estado vacío para "Grupos que Administro"
+ * Se muestra con botón para crear un nuevo grupo
  */
-const EmptyStateComponent = memo<{ onCreatePress: () => void }>(({ onCreatePress }) => (
+const EmptyStateAdminComponent = memo<{ onCreatePress: () => void }>(({ onCreatePress }) => (
   <View style={styles.emptyContainer}>
     <MaterialIcons name="group-work" size={64} color={colors.border} />
     <Text style={[styles.emptyTitle, { color: colors.text }]}>
@@ -114,7 +108,25 @@ const EmptyStateComponent = memo<{ onCreatePress: () => void }>(({ onCreatePress
   </View>
 ));
 
-EmptyStateComponent.displayName = 'EmptyStateComponent';
+EmptyStateAdminComponent.displayName = 'EmptyStateAdminComponent';
+
+/**
+ * Componente de estado vacío para "Grupos en los que Participo"
+ * Se muestra sin botón, solo mensaje informativo
+ */
+const EmptyStateParticipantComponent = memo(() => (
+  <View style={styles.emptyContainer}>
+    <MaterialIcons name="search" size={64} color={colors.border} />
+    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+      Aún no perteneces a ningún grupo
+    </Text>
+    <Text style={[styles.emptyMessage, { color: colors.label }]}>
+      Cuando te unas a un grupo, aparecerá aquí.
+    </Text>
+  </View>
+));
+
+EmptyStateParticipantComponent.displayName = 'EmptyStateParticipantComponent';
 
 /**
  * Componente de estado de error - se muestra cuando hay un error al cargar grupos
@@ -180,8 +192,11 @@ export function GroupsListScreen() {
   );
 
   const renderEmptyState = useCallback(
-    () => <EmptyStateComponent onCreatePress={handleCreateGroup} />,
-    [handleCreateGroup]
+    () => (activeTab === 'admin' ? 
+      <EmptyStateAdminComponent onCreatePress={handleCreateGroup} /> : 
+      <EmptyStateParticipantComponent />
+    ),
+    [activeTab, handleCreateGroup]
   );
 
   const renderErrorState = useCallback(

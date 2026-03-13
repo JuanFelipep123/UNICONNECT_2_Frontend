@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { groupsColors } from '../constants/colors';
 import type { Subject } from '../services/subjectsHttpService';
 import type { StudyGroupCreatePayload } from '../types/groups';
 import { SubjectSelector } from './SubjectSelector';
@@ -26,17 +27,7 @@ interface CreateGroupFormProps {
   onSubmit: (payload: StudyGroupCreatePayload) => Promise<void>;
 }
 
-const colors = {
-  primary: '#002147',
-  accent: '#C5A021',
-  surface: '#FFFFFF',
-  text: '#1F2A3C',
-  label: '#6B798F',
-  border: '#E0E8F0',
-  error: '#DC2626',
-  lightBg: '#F8F9FA',
-  placeholder: '#9CA3AF',
-};
+const colors = groupsColors;
 
 /**
  * Componente del formulario de creación de grupo
@@ -45,9 +36,7 @@ export const CreateGroupForm = memo<CreateGroupFormProps>(
   ({ subjects, isLoadingSubjects, isLoading, onSubmit }) => {
     const [groupName, setGroupName] = useState('');
     const [groupDescription, setGroupDescription] = useState('');
-    const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
-      subjects.length > 0 ? subjects[0].id : ''
-    );
+    const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
 
     const handleSubmit = useCallback(async () => {
       const payload: StudyGroupCreatePayload = {

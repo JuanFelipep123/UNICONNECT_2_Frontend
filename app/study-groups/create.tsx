@@ -17,18 +17,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CreateGroupForm } from '@/src/features/groups/components/CreateGroupForm';
+import { groupsColors } from '@/src/features/groups/constants/colors';
 import { useCreateStudyGroup } from '@/src/features/groups/hooks/useCreateStudyGroup';
 import { useUserSubjects } from '@/src/features/groups/hooks/useUserSubjects';
 import type { StudyGroupCreatePayload } from '@/src/features/groups/types/groups';
 import { useAuthStore } from '@/src/store/authStore';
 
-const colors = {
-  primary: '#002147',
-  surface: '#FFFFFF',
-  lightBg: '#F8F9FA',
-  text: '#1F2A3C',
-  label: '#6B798F',
-};
+const colors = groupsColors;
 
 export default function CreateStudyGroupScreen() {
   const { token } = useAuthStore();

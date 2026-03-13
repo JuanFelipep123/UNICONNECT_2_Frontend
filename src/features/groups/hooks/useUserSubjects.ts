@@ -59,7 +59,7 @@ export const useUserSubjects = (): UseUserSubjectsReturn => {
 
   useEffect(() => {
     reload();
-  }, [reload]);
+  }, [token]);
 
   return { subjects, loading, error, reload };
 };
