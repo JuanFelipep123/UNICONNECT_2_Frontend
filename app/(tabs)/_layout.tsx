@@ -199,7 +199,10 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
           <DrawerItem
             label="Grupos"
-            onPress={() => handleComingSoon('Grupos')}
+            onPress={() => {
+              props.navigation.closeDrawer();
+              router.navigate('/study-groups');
+            }}
             labelStyle={styles.drawerItemLabel}
             style={styles.drawerItem}
             icon={({ size, color }) => <Ionicons name="people-circle-outline" size={size} color={color} />}
