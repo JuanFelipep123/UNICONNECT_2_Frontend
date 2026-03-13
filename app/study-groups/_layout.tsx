@@ -12,9 +12,9 @@ export default function StudyGroupsLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: '#002147' },
+        headerStyle: { backgroundColor: '#00284D' },
         headerTintColor: '#FFFFFF',
-        headerTitleStyle: { fontWeight: '600', fontSize: 18 },
+        headerTitleStyle: { fontWeight: '600', fontSize: 17 },
         contentStyle: { backgroundColor: '#F8F9FA' },
       }}
     >
@@ -25,7 +25,7 @@ export default function StudyGroupsLayout() {
           headerLeft: () => (
             <Pressable
               onPress={() => router.replace('/(tabs)')}
-              style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+              style={{ paddingHorizontal: 12, paddingVertical: 2 }}
             >
               <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
