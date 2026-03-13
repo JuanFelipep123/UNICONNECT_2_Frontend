@@ -4,15 +4,15 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,6 +39,103 @@ const TABS: TabType[] = [
   { id: 'participant', label: 'Grupos en los que Participo' },
 ];
 
+/**
+ * Componente memoizado de tarjeta de grupo para evitar re-renders innecesarios
+ * cuando la lista se desplaza o se actualiza
+ */
+const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => void }>(
+  ({ item, onPress }) => {
+    const handlePress = useCallback(() => onPress(item), [item, onPress]);
+
+    return (
+      <TouchableOpacity
+        style={[styles.groupCard, { backgroundColor: colors.surface }]}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+          <MaterialIcons name="group" size={24} color="#FFFFFF" />
+        </View>
+
+        <View style={styles.groupContent}>
+          <Text style={[styles.groupName, { color: colors.primary }]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={[styles.groupDescription, { color: colors.label }]} numberOfLines={2}>
+            {item.description}
+          </Text>
+
+          <View style={styles.groupMeta}>
+            <View style={styles.metaItem}>
+              <MaterialIcons name="book" size={14} color={colors.label} />
+              <Text style={[styles.metaText, { color: colors.label }]}>
+                {item.subject?.name || 'Sin especificar'}
+              </Text>
+            </View>
+
+            {item.member_count && (
+              <View style={styles.metaItem}>
+                <MaterialIcons name="people" size={14} color={colors.label} />
+                <Text style={[styles.metaText, { color: colors.label }]}>
+                  {item.member_count} miembros
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <MaterialIcons name="chevron-right" size={24} color={colors.label} />
+      </TouchableOpacity>
+    );
+  }
+);
+
+GroupCardItem.displayName = 'GroupCardItem';
+
+/**
+ * Componente de estado vacío - se muestra cuando el usuario no pertenece a ningún grupo
+ */
+const EmptyStateComponent = memo<{ onCreatePress: () => void }>(({ onCreatePress }) => (
+  <View style={styles.emptyContainer}>
+    <MaterialIcons name="group-work" size={64} color={colors.border} />
+    <Text style={[styles.emptyTitle, { color: colors.text }]}>
+      Aún no perteneces a ningún grupo de estudio
+    </Text>
+    <Text style={[styles.emptyMessage, { color: colors.label }]}>
+      Crea tu primer grupo y empieza a colaborar con otros estudiantes.
+    </Text>
+    <TouchableOpacity
+      style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+      onPress={onCreatePress}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.emptyButtonText}>Crear mi primer grupo</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+EmptyStateComponent.displayName = 'EmptyStateComponent';
+
+/**
+ * Componente de estado de error - se muestra cuando hay un error al cargar grupos
+ */
+const ErrorStateComponent = memo<{ message: string; onRetry: () => void }>(({ message, onRetry }) => (
+  <View style={styles.emptyContainer}>
+    <MaterialIcons name="error-outline" size={64} color="#E74C3C" />
+    <Text style={[styles.emptyTitle, { color: colors.text }]}>Algo salió mal</Text>
+    <Text style={[styles.emptyMessage, { color: colors.label }]}>{message}</Text>
+    <TouchableOpacity
+      style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+      onPress={onRetry}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.emptyButtonText}>Reintentar</Text>
+    </TouchableOpacity>
+  </View>
+));
+
+ErrorStateComponent.displayName = 'ErrorStateComponent';
+
 export function GroupsListScreen() {
   const router = useRouter();
   const { adminGroups, participantGroups, loading, error, reload } = useUserGroups();
@@ -61,84 +158,35 @@ export function GroupsListScreen() {
   const currentGroups = activeTab === 'admin' ? adminGroups : participantGroups;
   const hasGroups = currentGroups.length > 0;
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = useCallback(() => {
     router.push('/study-groups/create');
-  };
+  }, [router]);
 
-  const handleGroupPress = (group: StudyGroup) => {
+  const handleGroupPress = useCallback((group: StudyGroup) => {
     router.push({
       pathname: '/study-groups/[id]',
       params: {
         id: group.id,
         name: group.name,
-        subjectName: group.subject?.name ?? '',
+        subjectName: group.subject?.name,
         description: group.description ?? '',
       },
     } as any);
-  };
+  }, [router]);
 
-  const renderGroupCard = ({ item }: { item: StudyGroup }) => (
-    <TouchableOpacity
-      style={[styles.groupCard, { backgroundColor: colors.surface }]}
-      onPress={() => handleGroupPress(item)}
-      activeOpacity={0.7}
-    >
-      {/* Avatar */}
-      <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
-        <MaterialIcons name="group" size={24} color="#FFFFFF" />
-      </View>
-
-      {/* Contenido */}
-      <View style={styles.groupContent}>
-        <Text style={[styles.groupName, { color: colors.primary }]} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={[styles.groupDescription, { color: colors.label }]} numberOfLines={2}>
-          {item.description}
-        </Text>
-
-        {/* Metadata */}
-        <View style={styles.groupMeta}>
-          <View style={styles.metaItem}>
-            <MaterialIcons name="book" size={14} color={colors.label} />
-            <Text style={[styles.metaText, { color: colors.label }]}>
-              {item.subject?.name || 'Sin materia'}
-            </Text>
-          </View>
-
-          {item.member_count && (
-            <View style={styles.metaItem}>
-              <MaterialIcons name="people" size={14} color={colors.label} />
-              <Text style={[styles.metaText, { color: colors.label }]}>
-                {item.member_count} miembros
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Icono de navegación */}
-      <MaterialIcons name="chevron-right" size={24} color={colors.label} />
-    </TouchableOpacity>
+  const renderGroupCard = useCallback(
+    ({ item }: { item: StudyGroup }) => <GroupCardItem item={item} onPress={handleGroupPress} />,
+    [handleGroupPress]
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <MaterialIcons name="group-work" size={64} color={colors.border} />
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        Aún no perteneces a ningún grupo de estudio
-      </Text>
-      <Text style={[styles.emptyMessage, { color: colors.label }]}>
-        Crea tu primer grupo y empieza a colaborar con otros estudiantes.
-      </Text>
-      <TouchableOpacity
-        style={[styles.emptyButton, { backgroundColor: colors.primary }]}
-        onPress={handleCreateGroup}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.emptyButtonText}>Crear mi primer grupo</Text>
-      </TouchableOpacity>
-    </View>
+  const renderEmptyState = useCallback(
+    () => <EmptyStateComponent onCreatePress={handleCreateGroup} />,
+    [handleCreateGroup]
+  );
+
+  const renderErrorState = useCallback(
+    () => <ErrorStateComponent message={error || 'Error desconocido'} onRetry={reload} />,
+    [error, reload]
   );
 
   return (
@@ -183,22 +231,7 @@ export function GroupsListScreen() {
           </Text>
         </View>
       ) : error ? (
-        <View style={styles.centerContainer}>
-          <MaterialIcons name="error-outline" size={48} color="#DC2626" />
-          <Text style={[styles.errorTitle, { color: colors.text }]}>
-            Error al Cargar
-          </Text>
-          <Text style={[styles.errorMessage, { color: colors.label }]}>
-            {error}
-          </Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={handleRefresh}
-            activeOpacity={0.6}
-          >
-            <Text style={styles.retryButtonText}>Intentar de Nuevo</Text>
-          </TouchableOpacity>
-        </View>
+        renderErrorState()
       ) : (
         <FlatList
           data={currentGroups}

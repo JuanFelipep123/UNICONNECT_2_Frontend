@@ -3,6 +3,7 @@
  * UI Shell temporal para el detalle del grupo
  */
 
+import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -24,9 +25,13 @@ const tabs = ['Miembros', 'Horarios', 'Archivos'];
 export default function StudyGroupDetailScreen() {
   const { id, name, subjectName, description } = useLocalSearchParams();
   const groupId = typeof id === 'string' ? id : id?.[0];
-  const groupName = typeof name === 'string' ? name : name?.[0];
-  const subjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
-  const groupDescription = typeof description === 'string' ? description : description?.[0];
+  const { group } = useGroupDetail(groupId ?? '');
+  const groupNameFromParams = typeof name === 'string' ? name : name?.[0];
+  const rawSubjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
+  const subjectLabel = group?.subject?.name || rawSubjectLabel?.trim() || 'Sin materia';
+  const groupDescriptionFromParams = typeof description === 'string' ? description : description?.[0];
+  const groupName = group?.name || groupNameFromParams;
+  const groupDescription = group?.description || groupDescriptionFromParams;
 
   return (
     <SafeAreaView
@@ -49,7 +54,7 @@ export default function StudyGroupDetailScreen() {
 
           <View style={styles.subjectPill}>
             <Text style={[styles.subjectPillText, { color: colors.primary }]}>
-              {subjectLabel || 'Sin materia'}
+              {subjectLabel}
             </Text>
           </View>
 

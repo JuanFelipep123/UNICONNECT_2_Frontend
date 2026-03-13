@@ -45,7 +45,9 @@ export default function CreateStudyGroupScreen() {
       const groupId = await createGroup(payload);
 
       if (groupId) {
-        const selectedSubject = subjects.find((subject) => subject.id === payload.subject_id);
+        const selectedSubjectName =
+          subjects.find((subject) => String(subject.id) === String(payload.subject_id))?.name ??
+          'Sin materia';
         Alert.alert('Éxito', 'El grupo fue creado correctamente', [
           {
             text: 'OK',
@@ -55,7 +57,7 @@ export default function CreateStudyGroupScreen() {
                 params: {
                   id: groupId,
                   name: payload.name,
-                  subjectName: selectedSubject?.name ?? '',
+                  subjectName: selectedSubjectName,
                   description: payload.description ?? '',
                 },
               } as any);

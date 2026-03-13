@@ -5,6 +5,7 @@
 import { useAuthStore } from '@/src/store/authStore';
 import { useCallback, useEffect, useState } from 'react';
 import { groupsHttpService } from '../services/groupsHttpService';
+import { subjectsHttpService } from '../services/subjectsHttpService';
 import type { StudyGroup } from '../types/groups';
 
 interface UseGroupDetailReturn {
@@ -32,9 +33,40 @@ export const useGroupDetail = (groupId: string): UseGroupDetailReturn => {
 
     try {
       const response = await groupsHttpService.getGroup(groupId, token);
+      const groupData = response.data;
 
-      if (response.success && response.data) {
-        setGroup(response.data);
+      if (response.success && groupData) {
+        let enrichedGroup = groupData;
+
+        if (!groupData.subject?.name && groupData.subject_id) {
+          const subjectsResponse = await subjectsHttpService.getUserSubjects(token);
+
+          if (subjectsResponse.success && subjectsResponse.data) {
+            const matchedSubject = subjectsResponse.data.find(
+              (subject) => String(subject.id) === String(groupData.subject_id)
+            );
+
+            if (matchedSubject) {
+              enrichedGroup = {
+                ...groupData,
+                subject: {
+                  id: String(groupData.subject_id),
+                  name: matchedSubject.name,
+                },
+              };
+            }
+          }
+        }
+
+        if (__DEV__) {
+          console.log('[useGroupDetail] Final subject for detail:', {
+            groupId: enrichedGroup.id,
+            subject_id: enrichedGroup.subject_id,
+            subject: enrichedGroup.subject,
+          });
+        }
+
+        setGroup(enrichedGroup);
       } else {
         setError(response.error || 'Error desconocido');
         setGroup(null);

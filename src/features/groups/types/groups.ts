@@ -2,7 +2,10 @@
  * Tipos para el módulo de Grupos de Estudio
  */
 
-import type { Subject } from '@/src/features/profile/types/profile';
+export interface StudyGroupSubject {
+  id: string;
+  name: string;
+}
 
 /**
  * Respuesta genérica de la API
@@ -35,7 +38,7 @@ export interface StudyGroup {
   name: string;
   description: string;
   subject_id: string;
-  subject?: Subject;
+  subject?: StudyGroupSubject;
   category?: StudyGroupCategory;
   creator_id: string;
   created_at: string;
