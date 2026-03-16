@@ -4,19 +4,21 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { memo, useCallback, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SubjectPicker } from '../../search/components/SubjectPicker';
 
 import { groupsColors } from '../constants/colors';
+import { useSubjectGroupsSearch } from '../hooks/useSubjectGroupsSearch';
 import { useUserGroups } from '../hooks/useUserGroups';
 import type { StudyGroup } from '../types/groups';
 
@@ -110,23 +112,28 @@ const EmptyStateAdminComponent = memo<{ onCreatePress: () => void }>(({ onCreate
 
 EmptyStateAdminComponent.displayName = 'EmptyStateAdminComponent';
 
-/**
- * Componente de estado vacío para "Grupos en los que Participo"
- * Se muestra sin botón, solo mensaje informativo
- */
-const EmptyStateParticipantComponent = memo(() => (
+type ParticipantSearchState = 'idle' | 'empty';
+
+const ParticipantEmptyStateComponent = memo<{
+  type: ParticipantSearchState;
+  subjectName?: string;
+}>(({ type, subjectName }) => (
   <View style={styles.emptyContainer}>
-    <MaterialIcons name="search" size={64} color={colors.border} />
+    <MaterialIcons name={type === 'empty' ? 'groups' : 'search'} size={64} color={colors.border} />
     <Text style={[styles.emptyTitle, { color: colors.text }]}>
-      Aún no perteneces a ningún grupo
+      {type === 'empty' ? 'No hay grupos disponibles' : 'No hay grupos a los que pertenezcas'}
     </Text>
     <Text style={[styles.emptyMessage, { color: colors.label }]}>
-      Cuando te unas a un grupo, aparecerá aquí.
+      {type === 'empty'
+        ? subjectName
+          ? `No hay grupos creados en "${subjectName}" por ahora.`
+          : 'No hay grupos creados en esta materia por ahora.'
+        : 'Puedes buscar grupos por materia para unirte a uno.'}
     </Text>
   </View>
 ));
 
-EmptyStateParticipantComponent.displayName = 'EmptyStateParticipantComponent';
+ParticipantEmptyStateComponent.displayName = 'ParticipantEmptyStateComponent';
 
 /**
  * Componente de estado de error - se muestra cuando hay un error al cargar grupos
@@ -150,9 +157,29 @@ ErrorStateComponent.displayName = 'ErrorStateComponent';
 
 export function GroupsListScreen() {
   const router = useRouter();
-  const { adminGroups, participantGroups, loading, error, reload } = useUserGroups();
+  const { adminGroups, loading, error, reload } = useUserGroups();
+  const {
+    subjects,
+    selectedSubject,
+    groups,
+    loadingSubjects,
+    subjectsError,
+    status,
+    error: groupsSearchError,
+    loadSubjects,
+    selectSubject,
+    clearSelection,
+    searchGroups,
+    resetResults,
+  } = useSubjectGroupsSearch();
   const [activeTab, setActiveTab] = useState<'admin' | 'participant'>('admin');
   const [refreshing, setRefreshing] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const selectedSubjectRef = useRef(selectedSubject);
+
+  useEffect(() => {
+    selectedSubjectRef.current = selectedSubject;
+  }, [selectedSubject]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -160,48 +187,195 @@ export function GroupsListScreen() {
     setRefreshing(false);
   }, [reload]);
 
-  // Recargar datos al enfocar la pantalla
+  const refreshParticipantSubjects = useCallback(async () => {
+    const loadedSubjects = await loadSubjects();
+    const currentSelectedSubject = selectedSubjectRef.current;
+
+    if (!currentSelectedSubject) {
+      resetResults();
+      return;
+    }
+
+    const syncedSubject = loadedSubjects.find((subject) => subject.id === currentSelectedSubject.id);
+
+    if (!syncedSubject) {
+      clearSelection();
+      resetResults();
+      setShowValidation(false);
+      return;
+    }
+
+    if (syncedSubject.name !== currentSelectedSubject.name) {
+      selectSubject(syncedSubject);
+    }
+
+    await searchGroups(syncedSubject.id);
+  }, [clearSelection, loadSubjects, resetResults, searchGroups, selectSubject]);
+
+  // Recargar al enfocar (incluye materias por si fueron editadas en perfil)
   useFocusEffect(
     useCallback(() => {
       reload();
-    }, [reload])
+      refreshParticipantSubjects();
+    }, [refreshParticipantSubjects, reload])
   );
-
-  const currentGroups = activeTab === 'admin' ? adminGroups : participantGroups;
-  const hasGroups = currentGroups.length > 0;
 
   const handleCreateGroup = useCallback(() => {
     router.push('/study-groups/create');
   }, [router]);
 
   const handleGroupPress = useCallback((group: StudyGroup) => {
+    const subjectNameForDetail =
+      group.subject?.name || (activeTab === 'participant' ? selectedSubject?.name : undefined);
+
     router.push({
       pathname: '/study-groups/[id]',
       params: {
         id: group.id,
         name: group.name,
-        subjectName: group.subject?.name,
+        subjectName: subjectNameForDetail,
         description: group.description ?? '',
+        canLeave: activeTab === 'participant' ? 'false' : 'true',
       },
     } as any);
-  }, [router]);
+  }, [activeTab, router, selectedSubject?.name]);
 
   const renderGroupCard = useCallback(
     ({ item }: { item: StudyGroup }) => <GroupCardItem item={item} onPress={handleGroupPress} />,
     [handleGroupPress]
   );
 
-  const renderEmptyState = useCallback(
-    () => (activeTab === 'admin' ? 
-      <EmptyStateAdminComponent onCreatePress={handleCreateGroup} /> : 
-      <EmptyStateParticipantComponent />
-    ),
-    [activeTab, handleCreateGroup]
+  const handleSelectSubject = useCallback(
+    (subject: { id: string; name: string }) => {
+      selectSubject(subject);
+      resetResults();
+      setShowValidation(false);
+    },
+    [resetResults, selectSubject]
   );
+
+  const handleClearSubject = useCallback(() => {
+    clearSelection();
+    resetResults();
+    setShowValidation(false);
+  }, [clearSelection, resetResults]);
+
+  const handleSearchGroups = useCallback(async () => {
+    if (!selectedSubject) {
+      setShowValidation(true);
+      return;
+    }
+
+    setShowValidation(false);
+    await searchGroups(selectedSubject.id);
+  }, [searchGroups, selectedSubject]);
 
   const renderErrorState = useCallback(
     () => <ErrorStateComponent message={error || 'Error desconocido'} onRetry={reload} />,
     [error, reload]
+  );
+
+  const renderParticipantResult = useCallback(() => {
+    if (status === 'loading') {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.label }]}>Buscando grupos...</Text>
+        </View>
+      );
+    }
+
+    if (status === 'error') {
+      return (
+        <ErrorStateComponent
+          message={groupsSearchError || 'No se pudieron cargar los grupos para esta materia.'}
+          onRetry={handleSearchGroups}
+        />
+      );
+    }
+
+    if (status === 'empty') {
+      return <ParticipantEmptyStateComponent type="empty" subjectName={selectedSubject?.name} />;
+    }
+
+    if (status === 'success') {
+      const participantGroupsWithSubject = groups.map((group) => ({
+        ...group,
+        subject: group.subject ?? (selectedSubject
+          ? { id: selectedSubject.id, name: selectedSubject.name }
+          : undefined),
+      }));
+
+      return (
+        <FlatList
+          data={participantGroupsWithSubject}
+          renderItem={renderGroupCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      );
+    }
+
+    return <ParticipantEmptyStateComponent type="idle" />;
+  }, [groups, groupsSearchError, handleSearchGroups, renderGroupCard, selectedSubject, status]);
+
+  const renderParticipantContent = useCallback(
+    () => (
+      <>
+        <View style={styles.searchPanel}>
+          <SubjectPicker
+            subjects={subjects}
+            selectedSubject={selectedSubject}
+            loading={loadingSubjects}
+            error={subjectsError}
+            onSelect={handleSelectSubject}
+            onClear={handleClearSubject}
+          />
+
+          {showValidation && !selectedSubject && (
+            <View style={styles.warningRow}>
+              <MaterialIcons name="warning" size={14} color={colors.accent} />
+              <Text style={styles.warningText}>Debes seleccionar una materia para buscar grupos.</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.searchButton, status === 'loading' && styles.searchButtonDisabled]}
+            onPress={handleSearchGroups}
+            disabled={status === 'loading' || loadingSubjects}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="search" size={18} color="#FFFFFF" />
+            <Text style={styles.searchButtonText}>BUSCAR GRUPOS</Text>
+          </TouchableOpacity>
+        </View>
+
+        {status === 'success' && (
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsCount}>
+              {groups.length} {groups.length === 1 ? 'grupo' : 'grupos'} encontrados
+            </Text>
+            <Text style={styles.resultsSubject}>{selectedSubject?.name}</Text>
+          </View>
+        )}
+
+        <View style={styles.contentArea}>{renderParticipantResult()}</View>
+      </>
+    ),
+    [
+      groups.length,
+      handleClearSubject,
+      handleSearchGroups,
+      handleSelectSubject,
+      loadingSubjects,
+      renderParticipantResult,
+      selectedSubject,
+      showValidation,
+      status,
+      subjects,
+      subjectsError,
+    ]
   );
 
   return (
@@ -237,33 +411,34 @@ export function GroupsListScreen() {
         ))}
       </View>
 
-      {/* Contenido */}
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.label }]}>
-            Cargando grupos...
-          </Text>
-        </View>
-      ) : error ? (
-        renderErrorState()
+      {activeTab === 'admin' ? (
+        loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.label }]}>Cargando grupos...</Text>
+          </View>
+        ) : error ? (
+          renderErrorState()
+        ) : (
+          <FlatList
+            data={adminGroups}
+            renderItem={renderGroupCard}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={<EmptyStateAdminComponent onCreatePress={handleCreateGroup} />}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        )
       ) : (
-        <FlatList
-          data={currentGroups}
-          renderItem={renderGroupCard}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyState}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
+        renderParticipantContent()
       )}
 
         {/* Botón flotante para crear grupo */}
@@ -313,6 +488,67 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: '500',
+  },
+  searchPanel: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: 12,
+  },
+  warningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#92400E',
+    fontWeight: '500',
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  searchButtonDisabled: {
+    opacity: 0.45,
+  },
+  searchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  resultsHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  resultsCount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  resultsSubject: {
+    fontSize: 12,
+    color: colors.accent,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
   errorTitle: {
     fontSize: 18,

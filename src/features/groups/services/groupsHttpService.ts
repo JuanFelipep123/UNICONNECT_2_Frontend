@@ -5,10 +5,10 @@
 
 import { API_BASE_URL } from '@/src/config/api';
 import type {
-  ApiResponse,
-  CreateGroupResponse,
-  StudyGroup,
-  StudyGroupCreatePayload,
+    ApiResponse,
+    CreateGroupResponse,
+    StudyGroup,
+    StudyGroupCreatePayload,
 } from '../types/groups';
 
 const GROUPS_ENDPOINT = `${API_BASE_URL}/study-groups`;
@@ -272,6 +272,53 @@ export const groupsHttpService = {
     return {
       success: true,
       data: groupsArray,
+    };
+  },
+
+  /**
+   * Obtiene grupos disponibles por materia
+   * GET /api/study-groups/by-subject/:subjectId
+   */
+  async getAvailableGroupsBySubject(
+    subjectId: string,
+    token: string
+  ): Promise<ApiResponse<StudyGroup[]>> {
+    const result = await executeFetch(() =>
+      fetch(`${GROUPS_ENDPOINT}/by-subject/${subjectId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    );
+
+    if (!result.ok) {
+      return {
+        success: false,
+        error:
+          result.status === 0
+            ? 'Error de conexión. Verifica tu conexión a internet.'
+            : getErrorMessage(result.json, result.status),
+      };
+    }
+
+    let groupsArrayRaw: unknown[] = [];
+
+    if (Array.isArray(result.json)) {
+      groupsArrayRaw = result.json;
+    } else if (result.json && typeof result.json === 'object') {
+      const payload = result.json as Record<string, unknown>;
+      if (Array.isArray(payload.data)) {
+        groupsArrayRaw = payload.data;
+      } else if (Array.isArray(payload.groups)) {
+        groupsArrayRaw = payload.groups;
+      }
+    }
+
+    return {
+      success: true,
+      data: groupsArrayRaw.map(normalizeGroup),
     };
   },
 };

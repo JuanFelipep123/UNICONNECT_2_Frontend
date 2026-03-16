@@ -15,11 +15,13 @@ const colors = groupsColors;
 const tabs = ['Miembros', 'Horarios', 'Archivos'];
 
 export default function StudyGroupDetailScreen() {
-  const { id, name, subjectName, description } = useLocalSearchParams();
+  const { id, name, subjectName, description, canLeave } = useLocalSearchParams();
   const groupId = typeof id === 'string' ? id : id?.[0];
   const { group } = useGroupDetail(groupId ?? '');
   const groupNameFromParams = typeof name === 'string' ? name : name?.[0];
   const rawSubjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
+  const rawCanLeave = typeof canLeave === 'string' ? canLeave : canLeave?.[0];
+  const canLeaveGroup = rawCanLeave ? rawCanLeave === 'true' : true;
   const subjectLabel = group?.subject?.name || rawSubjectLabel?.trim() || 'Sin materia';
   const groupDescriptionFromParams = typeof description === 'string' ? description : description?.[0];
   const groupName = group?.name || groupNameFromParams;
@@ -40,9 +42,11 @@ export default function StudyGroupDetailScreen() {
             <Text style={[styles.memberCount, { color: colors.label }]}>1 miembro</Text>
           </View>
 
-          <TouchableOpacity style={styles.leaveButton} activeOpacity={0.7}>
-            <Text style={styles.leaveButtonText}>Abandonar grupo</Text>
-          </TouchableOpacity>
+          {canLeaveGroup && (
+            <TouchableOpacity style={styles.leaveButton} activeOpacity={0.7}>
+              <Text style={styles.leaveButtonText}>Abandonar grupo</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.subjectPill}>
             <Text style={[styles.subjectPillText, { color: colors.primary }]}>

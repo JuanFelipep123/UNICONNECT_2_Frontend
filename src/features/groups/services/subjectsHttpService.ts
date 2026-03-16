@@ -16,6 +16,7 @@ export interface ApiResponse<T> {
 }
 
 const SUBJECTS_ENDPOINT = `${API_BASE_URL}/subjects`;
+const PROFILE_SUBJECTS_ENDPOINT = `${API_BASE_URL}/profile-subjects`;
 
 const readJson = async (response: Response): Promise<unknown> => {
   try {
@@ -86,6 +87,57 @@ export const subjectsHttpService = {
       };
     } catch (error) {
       console.error('[subjectsHttpService.getUserSubjects] Error de red:', error);
+      return {
+        success: false,
+        error: 'Error de conexión. Verifica tu conexión a internet.',
+      };
+    }
+  },
+
+  /**
+   * Obtiene materias por perfil (endpoint backend actual)
+   * GET /api/profile-subjects/:profileId
+   */
+  async getSubjectsByProfile(profileId: string, token: string): Promise<ApiResponse<Subject[]>> {
+    try {
+      const response = await fetch(`${PROFILE_SUBJECTS_ENDPOINT}/${profileId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
+
+      const json = await readJson(response);
+
+      if (response.ok) {
+        let subjectsArray: Subject[] = [];
+
+        if (Array.isArray(json)) {
+          subjectsArray = json;
+        } else if (json && typeof json === 'object') {
+          const payload = json as Record<string, unknown>;
+          if (Array.isArray(payload.data)) {
+            subjectsArray = payload.data as Subject[];
+          } else if (Array.isArray(payload.subjects)) {
+            subjectsArray = payload.subjects as Subject[];
+          }
+        }
+
+        return {
+          success: true,
+          data: subjectsArray,
+        };
+      }
+
+      return {
+        success: false,
+        error: getErrorMessage(json, response.status),
+      };
+    } catch (error) {
+      console.error('[subjectsHttpService.getSubjectsByProfile] Error de red:', error);
       return {
         success: false,
         error: 'Error de conexión. Verifica tu conexión a internet.',

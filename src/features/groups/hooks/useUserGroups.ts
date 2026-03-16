@@ -17,7 +17,7 @@ interface UseUserGroupsReturn {
 }
 
 export const useUserGroups = (): UseUserGroupsReturn => {
-  const { token } = useAuthStore();
+  const { token, userId } = useAuthStore();
   const [allGroups, setAllGroups] = useState<StudyGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,9 @@ export const useUserGroups = (): UseUserGroupsReturn => {
     try {
       const [groupsResponse, subjectsResponse] = await Promise.all([
         groupsHttpService.getUserGroups(token),
-        subjectsHttpService.getUserSubjects(token),
+        userId
+          ? subjectsHttpService.getSubjectsByProfile(userId, token)
+          : subjectsHttpService.getUserSubjects(token),
       ]);
 
       const subjectNameById = new Map(
@@ -91,14 +93,14 @@ export const useUserGroups = (): UseUserGroupsReturn => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, userId]);
 
   // Efecto que SOLO depende de token, no de reload
   // Esto evita infinite loop: token cambia → useEffect corre → reload() es llamado
   // Pero reload() no está en las dependencias, así que NO causará otro render
   useEffect(() => {
     reload();
-  }, [token]);
+  }, [token, userId]);
 
   // Separar grupos: administrados vs participante
   const adminGroups = allGroups.filter((g) => g.is_admin);
