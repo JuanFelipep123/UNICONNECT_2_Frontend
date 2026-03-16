@@ -80,11 +80,10 @@ export const useGroupDetail = (groupId: string): UseGroupDetailReturn => {
     }
   }, [groupId, token]);
 
-  // Efecto que SOLO depende de groupId y token, no de reload
-  // Esto evita infinite loop
+  // Ejecuta carga inicial y al cambiar groupId/token (vía reload memoizado)
   useEffect(() => {
     reload();
-  }, [groupId, token]);
+  }, [reload]);
 
   return { group, loading, error, reload };
 };
