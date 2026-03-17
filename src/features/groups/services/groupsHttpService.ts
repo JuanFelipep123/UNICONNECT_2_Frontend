@@ -132,7 +132,11 @@ const normalizeGroup = (raw: unknown): StudyGroup => {
     subject_id: toStringSafe(rawGroup.subject_id) || toStringSafe(rawGroup.subjectId),
     subject: resolveSubject(rawGroup),
     category: rawGroup.category as StudyGroup['category'],
-    creator_id: toStringSafe(rawGroup.creator_id) || toStringSafe(rawGroup.creatorId),
+    creator_id:
+      toStringSafe(rawGroup.creator_id) ||
+      toStringSafe(rawGroup.creatorId) ||
+      toStringSafe(rawGroup.created_by) ||
+      toStringSafe(rawGroup.createdBy),
     created_at: toStringSafe(rawGroup.created_at) || toStringSafe(rawGroup.createdAt),
     updated_at: toStringSafe(rawGroup.updated_at) || toStringSafe(rawGroup.updatedAt) || undefined,
     member_count:

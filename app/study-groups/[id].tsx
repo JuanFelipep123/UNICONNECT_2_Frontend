@@ -35,8 +35,18 @@ export default function StudyGroupDetailScreen() {
   }, [group?.is_member]);
 
   React.useEffect(() => {
-    const parsedMember = typeof isMemberParam === 'string' ? isMemberParam === 'true' : undefined;
-    const parsedAdmin = typeof isAdminParam === 'string' ? isAdminParam === 'true' : undefined;
+    const parseBoolParam = (value: unknown): boolean | undefined => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+      }
+      return undefined;
+    };
+
+    const parsedMember = parseBoolParam(isMemberParam);
+    const parsedAdmin = parseBoolParam(isAdminParam);
 
     if (parsedMember !== undefined) {
       setLocalIsMember(parsedMember);
