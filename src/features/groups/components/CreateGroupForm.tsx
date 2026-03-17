@@ -7,13 +7,13 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { memo, useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { groupsColors } from '../constants/colors';
 import type { Subject } from '../services/subjectsHttpService';
@@ -53,7 +53,6 @@ export const CreateGroupForm = memo<CreateGroupFormProps>(
       setGroupDescription('');
     }, [groupName, groupDescription, selectedSubjectId, onSubmit]);
 
-    const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
     const isFormValid =
       groupName.trim().length > 0 &&
       groupDescription.trim().length > 0 &&

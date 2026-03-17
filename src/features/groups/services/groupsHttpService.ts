@@ -78,6 +78,21 @@ const toNumberSafe = (value: unknown): number | undefined => {
   return undefined;
 };
 
+const toBooleanSafe = (value: unknown): boolean => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+  return false;
+};
+
 const resolveSubject = (rawGroup: Record<string, unknown>) => {
   const rawSubject = rawGroup.subject;
 
@@ -124,7 +139,8 @@ const normalizeGroup = (raw: unknown): StudyGroup => {
       toNumberSafe(rawGroup.member_count) ??
       toNumberSafe(rawGroup.memberCount) ??
       toNumberSafe(rawGroup.members_count),
-    is_admin: Boolean(rawGroup.is_admin ?? rawGroup.isAdmin),
+    is_member: toBooleanSafe(rawGroup.is_member ?? rawGroup.isMember),
+    is_admin: toBooleanSafe(rawGroup.is_admin ?? rawGroup.isAdmin),
   };
 };
 
@@ -319,6 +335,118 @@ export const groupsHttpService = {
     return {
       success: true,
       data: groupsArrayRaw.map(normalizeGroup),
+    };
+  },
+
+  /**
+   * Únete a un grupo de estudio
+   * POST /api/study-groups/:groupId/join
+   */
+  async joinGroup(groupId: string, token: string): Promise<ApiResponse<StudyGroup>> {
+    const url = `${GROUPS_ENDPOINT}/${groupId}/join`;
+
+    if (__DEV__) {
+      console.log('[groupsHttpService.joinGroup] POST', url, 'token length', token?.length ?? 0);
+    }
+
+    const result = await executeFetch(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    );
+
+    if (__DEV__) {
+      console.log('[groupsHttpService.joinGroup] response status', result.status, 'ok', result.ok);
+      console.log('[groupsHttpService.joinGroup] response json', result.json);
+    }
+
+    if (!result.ok) {
+      return {
+        success: false,
+        error:
+          result.status === 0
+            ? 'Error de conexión. Verifica tu conexión a internet.'
+            : getErrorMessage(result.json, result.status),
+      };
+    }
+
+    let groupPayload: unknown = result.json;
+
+    if (result.json && typeof result.json === 'object') {
+      const payload = result.json as Record<string, unknown>;
+      if (payload.data && typeof payload.data === 'object') {
+        groupPayload = payload.data;
+      }
+    }
+
+    const normalizedGroup = normalizeGroup(groupPayload);
+    if (__DEV__) {
+      console.log('[groupsHttpService.joinGroup] Joined group:', normalizedGroup);
+    }
+
+    return {
+      success: true,
+      data: normalizedGroup,
+    };
+  },
+
+  /**
+   * Salirse de un grupo de estudio
+   * POST /api/study-groups/:groupId/leave
+   */
+  async leaveGroup(groupId: string, token: string): Promise<ApiResponse<StudyGroup>> {
+    const url = `${GROUPS_ENDPOINT}/${groupId}/leave`;
+
+    if (__DEV__) {
+      console.log('[groupsHttpService.leaveGroup] POST', url, 'token length', token?.length ?? 0);
+    }
+
+    const result = await executeFetch(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    );
+
+    if (__DEV__) {
+      console.log('[groupsHttpService.leaveGroup] response status', result.status, 'ok', result.ok);
+      console.log('[groupsHttpService.leaveGroup] response json', result.json);
+    }
+
+    if (!result.ok) {
+      return {
+        success: false,
+        error:
+          result.status === 0
+            ? 'Error de conexión. Verifica tu conexión a internet.'
+            : getErrorMessage(result.json, result.status),
+      };
+    }
+
+    let groupPayload: unknown = result.json;
+
+    if (result.json && typeof result.json === 'object') {
+      const payload = result.json as Record<string, unknown>;
+      if (payload.data && typeof payload.data === 'object') {
+        groupPayload = payload.data;
+      }
+    }
+
+    const normalizedGroup = normalizeGroup(groupPayload);
+    if (__DEV__) {
+      console.log('[groupsHttpService.leaveGroup] Left group:', normalizedGroup);
+    }
+
+    return {
+      success: true,
+      data: normalizedGroup,
     };
   },
 };

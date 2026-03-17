@@ -44,6 +44,7 @@ export interface StudyGroup {
   created_at: string;
   updated_at?: string;
   member_count?: number;
+  is_member?: boolean;
   is_admin: boolean;
 }
 

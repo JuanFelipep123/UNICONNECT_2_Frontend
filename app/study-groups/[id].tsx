@@ -5,9 +5,10 @@
 
 import { groupsColors } from '@/src/features/groups/constants/colors';
 import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
+import { useAuthStore } from '@/src/store/authStore';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const colors = groupsColors;
@@ -15,66 +16,165 @@ const colors = groupsColors;
 const tabs = ['Miembros', 'Horarios', 'Archivos'];
 
 export default function StudyGroupDetailScreen() {
-  const { id, name, subjectName, description, canLeave } = useLocalSearchParams();
+  const { id, name, subjectName, description, isAdmin: isAdminParam, isMember: isMemberParam } = useLocalSearchParams();
   const groupId = typeof id === 'string' ? id : id?.[0];
-  const { group } = useGroupDetail(groupId ?? '');
+  const { group, loading, joinGroup, leaveGroup } = useGroupDetail(groupId ?? '');
+  const { userId } = useAuthStore();
+  const [localIsMember, setLocalIsMember] = React.useState<boolean | null>(null);
+  const [localIsAdmin, setLocalIsAdmin] = React.useState<boolean | null>(null);
+
   const groupNameFromParams = typeof name === 'string' ? name : name?.[0];
   const rawSubjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
-  const rawCanLeave = typeof canLeave === 'string' ? canLeave : canLeave?.[0];
-  const canLeaveGroup = rawCanLeave ? rawCanLeave === 'true' : true;
   const subjectLabel = group?.subject?.name || rawSubjectLabel?.trim() || 'Sin materia';
   const groupDescriptionFromParams = typeof description === 'string' ? description : description?.[0];
   const groupName = group?.name || groupNameFromParams;
   const groupDescription = group?.description || groupDescriptionFromParams;
+
+  React.useEffect(() => {
+    setLocalIsMember(group?.is_member ?? null);
+  }, [group?.is_member]);
+
+  React.useEffect(() => {
+    const parsedMember = typeof isMemberParam === 'string' ? isMemberParam === 'true' : undefined;
+    const parsedAdmin = typeof isAdminParam === 'string' ? isAdminParam === 'true' : undefined;
+
+    if (parsedMember !== undefined) {
+      setLocalIsMember(parsedMember);
+    }
+    if (parsedAdmin !== undefined) {
+      setLocalIsAdmin(parsedAdmin);
+    }
+
+    if (__DEV__) {
+      console.log(
+        '[StudyGroupDetailScreen] groupId:',
+        groupId,
+        'isAdmin (param):',
+        parsedAdmin,
+        'isMember (param):',
+        parsedMember,
+        'isAdmin (api):',
+        group?.is_admin,
+        'isMember (api):',
+        group?.is_member
+      );
+    }
+  }, [groupId, group?.is_admin, group?.is_member, isAdminParam, isMemberParam]);
+
+  const isCreator = Boolean(group?.creator_id && group?.creator_id === userId);
+  const isAdmin = Boolean(isCreator || (localIsAdmin !== null ? localIsAdmin : group?.is_admin));
+  const isMember = Boolean(isCreator || (localIsMember !== null ? localIsMember : group?.is_member));
+  const memberCount = group?.member_count;
+  const memberCountLabel = typeof memberCount === 'number'
+    ? `${memberCount} miembro${memberCount === 1 ? '' : 's'}`
+    : '';
+
+  const handleJoin = async () => {
+    const result = await joinGroup();
+    if (result.success) {
+      setLocalIsMember(true);
+      Alert.alert('¡Listo!', 'Ahora eres miembro de este grupo.');
+    } else {
+      Alert.alert('No se pudo unir', 'Intenta de nuevo más tarde.');
+    }
+  };
+
+  const handleLeave = async () => {
+    const result = await leaveGroup();
+    if (result.success) {
+      setLocalIsMember(false);
+      Alert.alert('Has salido', 'Ya no perteneces a este grupo.');
+    } else {
+      Alert.alert('No se pudo salir', 'Intenta de nuevo más tarde.');
+    }
+  };
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.lightBg }]}
       edges={['left', 'right', 'bottom']}
     >
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Card principal */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={[styles.groupName, { color: colors.primary }]}>
-              {groupName || 'Cargando detalle...'}
-            </Text>
-            <Text style={[styles.memberCount, { color: colors.label }]}>1 miembro</Text>
-          </View>
+      <View style={styles.screen}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Card principal */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={[styles.groupName, { color: colors.primary }]}> 
+                {groupName || 'Cargando detalle...'}
+              </Text>
+              {memberCountLabel ? (
+                <Text style={[styles.memberCount, { color: colors.label }]}> 
+                  {memberCountLabel}
+                </Text>
+              ) : null}
+            </View>
 
-          {canLeaveGroup && (
-            <TouchableOpacity style={styles.leaveButton} activeOpacity={0.7}>
-              <Text style={styles.leaveButtonText}>Abandonar grupo</Text>
-            </TouchableOpacity>
-          )}
+            {isAdmin ? (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoText, { color: colors.primary }]}>Eres el administrador de este grupo.</Text>
+              </View>
+            ) : isMember ? (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoText, { color: colors.success }]}>Ya estás en este grupo.</Text>
+              </View>
+            ) : null}
 
-          <View style={styles.subjectPill}>
-            <Text style={[styles.subjectPillText, { color: colors.primary }]}>
-              {subjectLabel}
-            </Text>
-          </View>
-
-          <Text style={[styles.description, { color: colors.label }]}> {groupDescription || 'Cargando detalle...'}</Text>
-
-          <Text style={styles.groupIdText}>ID: {groupId || 'N/A'}</Text>
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          {tabs.map((tab, index) => (
-            <View key={tab} style={[styles.tabItem, index === 0 && styles.tabItemActive]}>
-              <Text
-                style={[
-                  styles.tabText,
-                  index === 0 ? styles.tabTextActive : styles.tabTextInactive,
-                ]}
-              >
-                {tab}
+            <View style={styles.subjectPill}>
+              <Text style={[styles.subjectPillText, { color: colors.primary }]}>
+                {subjectLabel}
               </Text>
             </View>
-          ))}
+
+            <Text style={[styles.description, { color: colors.label }]}> 
+              {groupDescription || 'Cargando detalle...'}
+            </Text>
+            <Text style={styles.groupIdText}>ID: {groupId || 'N/A'}</Text>
+          </View>
+
+          {/* Tabs */}
+          <View style={styles.tabsContainer}>
+            {tabs.map((tab, index) => (
+              <View key={tab} style={[styles.tabItem, index === 0 && styles.tabItemActive]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    index === 0 ? styles.tabTextActive : styles.tabTextInactive,
+                  ]}
+                >
+                  {tab}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Spacer so content isn't hidden behind footer */}
+          <View style={styles.footerSpacer} />
+        </ScrollView>
+
+        {/* Footer action */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={
+              loading
+                ? [styles.actionButton, styles.actionButtonDisabled]
+                : isAdmin || isMember
+                ? [styles.actionButton, styles.actionButtonDanger]
+                : styles.actionButton
+            }
+            activeOpacity={0.7}
+            onPress={isAdmin || isMember ? handleLeave : handleJoin}
+            disabled={loading}
+          >
+            <Text style={styles.actionButtonText}>
+              {(isAdmin ? 'Abandonar' : isMember ? 'Salir del grupo' : 'Unirme al grupo').toUpperCase()}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -86,6 +186,28 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 28,
+  },
+  screen: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  footerSpacer: {
+    height: 120,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    justifyContent: 'flex-end',
   },
   card: {
     backgroundColor: colors.surface,
@@ -106,19 +228,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  leaveButton: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  actionButton: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 0,
+  },
+  actionButtonDisabled: {
+    opacity: 0.45,
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  actionButtonDanger: {
+    backgroundColor: colors.danger,
+  },
+  infoRow: {
     marginBottom: 12,
   },
-  leaveButtonText: {
-    color: colors.danger,
+  infoText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 12,
   },
   subjectPill: {
     alignSelf: 'flex-start',

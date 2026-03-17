@@ -19,6 +19,8 @@ interface UseSubjectGroupsSearchReturn {
   clearSelection: () => void;
   searchGroups: (subjectId: string) => Promise<void>;
   resetResults: () => void;
+  joinGroup: (groupId: string) => Promise<boolean>;
+  leaveGroup: (groupId: string) => Promise<boolean>;
 }
 
 export const useSubjectGroupsSearch = (): UseSubjectGroupsSearchReturn => {
@@ -112,6 +114,64 @@ export const useSubjectGroupsSearch = (): UseSubjectGroupsSearchReturn => {
     [token]
   );
 
+  const joinGroup = useCallback(
+    async (groupId: string): Promise<boolean> => {
+      if (!token) {
+        setError('Sesión no válida. Reinicia la aplicación.');
+        return false;
+      }
+
+      try {
+        const response = await groupsHttpService.joinGroup(groupId, token);
+        if (!response.success || !response.data) {
+          setError(response.error || 'No se pudo unir al grupo.');
+          return false;
+        }
+
+        setGroups((prev) =>
+          prev.map((group) =>
+            group.id === groupId ? { ...group, ...response.data, is_member: true } : group
+          )
+        );
+
+        return true;
+      } catch {
+        setError('No se pudo unir al grupo.');
+        return false;
+      }
+    },
+    [token]
+  );
+
+  const leaveGroup = useCallback(
+    async (groupId: string): Promise<boolean> => {
+      if (!token) {
+        setError('Sesión no válida. Reinicia la aplicación.');
+        return false;
+      }
+
+      try {
+        const response = await groupsHttpService.leaveGroup(groupId, token);
+        if (!response.success || !response.data) {
+          setError(response.error || 'No se pudo salir del grupo.');
+          return false;
+        }
+
+        setGroups((prev) =>
+          prev.map((group) =>
+            group.id === groupId ? { ...group, ...response.data, is_member: false } : group
+          )
+        );
+
+        return true;
+      } catch {
+        setError('No se pudo salir del grupo.');
+        return false;
+      }
+    },
+    [token]
+  );
+
   return {
     subjects,
     selectedSubject,
@@ -125,5 +185,7 @@ export const useSubjectGroupsSearch = (): UseSubjectGroupsSearchReturn => {
     clearSelection,
     searchGroups,
     resetResults,
+    joinGroup,
+    leaveGroup,
   };
 };

@@ -13,6 +13,8 @@ interface UseGroupDetailReturn {
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
+  joinGroup: () => Promise<{ success: boolean; error?: string }>;
+  leaveGroup: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useGroupDetail = (groupId: string): UseGroupDetailReturn => {
@@ -85,5 +87,61 @@ export const useGroupDetail = (groupId: string): UseGroupDetailReturn => {
     reload();
   }, [reload]);
 
-  return { group, loading, error, reload };
+  const joinGroup = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!token || !groupId) {
+      return { success: false, error: 'Se requieren credenciales válidas' };
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await groupsHttpService.joinGroup(groupId, token);
+      if (!response.success) {
+        setError(response.error || 'No se pudo unir al grupo');
+        return { success: false, error: response.error };
+      }
+
+      // Re-cargar el grupo para asegurar que los flags y miembros estén sincronizados
+      await reload();
+
+      return { success: true };
+    } catch (err) {
+      console.error('[useGroupDetail] Error joining group:', err);
+      setError('No se pudo unir al grupo');
+      return { success: false, error: 'No se pudo unir al grupo' };
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId, reload, token]);
+
+  const leaveGroup = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!token || !groupId) {
+      return { success: false, error: 'Se requieren credenciales válidas' };
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await groupsHttpService.leaveGroup(groupId, token);
+      if (!response.success) {
+        setError(response.error || 'No se pudo salir del grupo');
+        return { success: false, error: response.error };
+      }
+
+      // Re-cargar el grupo para asegurar que los flags y miembros estén sincronizados
+      await reload();
+
+      return { success: true };
+    } catch (err) {
+      console.error('[useGroupDetail] Error leaving group:', err);
+      setError('No se pudo salir del grupo');
+      return { success: false, error: 'No se pudo salir del grupo' };
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId, reload, token]);
+
+  return { group, loading, error, reload, joinGroup, leaveGroup };
 };

@@ -48,7 +48,7 @@ const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => v
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+        <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}> 
           <MaterialIcons name="group" size={24} color="#FFFFFF" />
         </View>
 
@@ -63,7 +63,7 @@ const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => v
           <View style={styles.groupMeta}>
             <View style={styles.metaItem}>
               <MaterialIcons name="book" size={14} color={colors.label} />
-              <Text style={[styles.metaText, { color: colors.label }]}>
+              <Text style={[styles.metaText, { color: colors.label }]}> 
                 {item.subject?.name || 'Sin especificar'}
               </Text>
             </View>
@@ -71,7 +71,7 @@ const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => v
             {item.member_count && (
               <View style={styles.metaItem}>
                 <MaterialIcons name="people" size={14} color={colors.label} />
-                <Text style={[styles.metaText, { color: colors.label }]}>
+                <Text style={[styles.metaText, { color: colors.label }]}> 
                   {item.member_count} miembros
                 </Text>
               </View>
@@ -157,7 +157,7 @@ ErrorStateComponent.displayName = 'ErrorStateComponent';
 
 export function GroupsListScreen() {
   const router = useRouter();
-  const { adminGroups, loading, error, reload } = useUserGroups();
+  const { adminGroups, participantGroups, loading, error, reload } = useUserGroups();
   const {
     subjects,
     selectedSubject,
@@ -225,23 +225,22 @@ export function GroupsListScreen() {
   }, [router]);
 
   const handleGroupPress = useCallback((group: StudyGroup) => {
-    const subjectNameForDetail =
-      group.subject?.name || (activeTab === 'participant' ? selectedSubject?.name : undefined);
+    const subjectNameForDetail = group.subject?.name || selectedSubject?.name;
+    const encodedName = encodeURIComponent(group.name);
+    const encodedSubject = encodeURIComponent(subjectNameForDetail || '');
+    const encodedDescription = encodeURIComponent(group.description ?? '');
+    const encodedIsAdmin = encodeURIComponent(String(Boolean(group.is_admin)));
+    const encodedIsMember = encodeURIComponent(String(Boolean(group.is_member)));
 
-    router.push({
-      pathname: '/study-groups/[id]',
-      params: {
-        id: group.id,
-        name: group.name,
-        subjectName: subjectNameForDetail,
-        description: group.description ?? '',
-        canLeave: activeTab === 'participant' ? 'false' : 'true',
-      },
-    } as any);
-  }, [activeTab, router, selectedSubject?.name]);
+    router.push(
+      `/study-groups/${group.id}?name=${encodedName}&subjectName=${encodedSubject}&description=${encodedDescription}&isAdmin=${encodedIsAdmin}&isMember=${encodedIsMember}`
+    );
+  }, [router, selectedSubject?.name]);
 
   const renderGroupCard = useCallback(
-    ({ item }: { item: StudyGroup }) => <GroupCardItem item={item} onPress={handleGroupPress} />,
+    ({ item }: { item: StudyGroup }) => (
+      <GroupCardItem item={item} onPress={handleGroupPress} />
+    ),
     [handleGroupPress]
   );
 
@@ -317,8 +316,21 @@ export function GroupsListScreen() {
       );
     }
 
+    // Default view (sin búsqueda activa): mostrar grupos a los que perteneces
+    if (participantGroups.length > 0) {
+      return (
+        <FlatList
+          data={participantGroups}
+          renderItem={renderGroupCard}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      );
+    }
+
     return <ParticipantEmptyStateComponent type="idle" />;
-  }, [groups, groupsSearchError, handleSearchGroups, renderGroupCard, selectedSubject, status]);
+  }, [groups, groupsSearchError, handleSearchGroups, participantGroups, renderGroupCard, selectedSubject, status]);
 
   const renderParticipantContent = useCallback(
     () => (
@@ -441,14 +453,15 @@ export function GroupsListScreen() {
         renderParticipantContent()
       )}
 
-        {/* Botón flotante para crear grupo */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.accent }]}
-        onPress={handleCreateGroup}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons name="add" size={28} color={colors.primary} />
-      </TouchableOpacity>
+      {activeTab === 'admin' && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.accent }]}
+          onPress={handleCreateGroup}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="add" size={28} color={colors.primary} />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -621,6 +634,42 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
+  },
+  cardActionContainer: {
+    marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cardActionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  cardActionButtonLeave: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    backgroundColor: 'transparent',
+  },
+  cardActionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  cardActionButtonTextDanger: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.danger,
   },
   emptyContainer: {
     flex: 1,
