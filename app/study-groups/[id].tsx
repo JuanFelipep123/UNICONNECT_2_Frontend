@@ -8,7 +8,7 @@ import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
 import { useAuthStore } from '@/src/store/authStore';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const colors = groupsColors;
@@ -22,6 +22,7 @@ export default function StudyGroupDetailScreen() {
   const { userId } = useAuthStore();
   const [localIsMember, setLocalIsMember] = React.useState<boolean | null>(null);
   const [localIsAdmin, setLocalIsAdmin] = React.useState<boolean | null>(null);
+  const [isJoining, setIsJoining] = React.useState(false);
 
   const groupNameFromParams = typeof name === 'string' ? name : name?.[0];
   const rawSubjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
@@ -80,12 +81,17 @@ export default function StudyGroupDetailScreen() {
     : '';
 
   const handleJoin = async () => {
-    const result = await joinGroup();
-    if (result.success) {
-      setLocalIsMember(true);
-      Alert.alert('¡Listo!', 'Ahora eres miembro de este grupo.');
-    } else {
-      Alert.alert('No se pudo unir', 'Intenta de nuevo más tarde.');
+    setIsJoining(true);
+    try {
+      const result = await joinGroup();
+      if (result.success) {
+        setLocalIsMember(true);
+        Alert.alert('¡Listo!', 'Ahora eres miembro de este grupo.');
+      } else {
+        Alert.alert('No se pudo unir', 'Intenta de nuevo más tarde.');
+      }
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -177,9 +183,18 @@ export default function StudyGroupDetailScreen() {
             onPress={isAdmin || isMember ? handleLeave : handleJoin}
             disabled={loading}
           >
-            <Text style={styles.actionButtonText}>
-              {(isAdmin ? 'Abandonar' : isMember ? 'Salir del grupo' : 'Unirme al grupo').toUpperCase()}
-            </Text>
+            {isJoining ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" style={styles.actionButtonSpinner} />
+                <Text style={[styles.actionButtonText, styles.actionButtonTextWithIcon]}>
+                  {'Unirme al grupo'.toUpperCase()}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.actionButtonText}>
+                {(isAdmin ? 'Abandonar' : isMember ? 'Salir del grupo' : 'Unirme al grupo').toUpperCase()}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -254,6 +269,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  actionButtonSpinner: {
+    marginRight: 8,
+  },
+  actionButtonTextWithIcon: {
+    marginLeft: 4,
   },
   actionButtonDanger: {
     backgroundColor: colors.danger,
