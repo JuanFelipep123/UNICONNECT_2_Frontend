@@ -89,14 +89,12 @@ export default function StudyGroupDetailScreen() {
     }
   };
 
-  const handleLeave = async () => {
-    const result = await leaveGroup();
-    if (result.success) {
-      setLocalIsMember(false);
-      Alert.alert('Has salido', 'Ya no perteneces a este grupo.');
-    } else {
-      Alert.alert('No se pudo salir', 'Intenta de nuevo más tarde.');
-    }
+  const handleLeave = () => {
+    // Esta funcionalidad aún no debe realizarse. Solo mostramos un mensaje al usuario.
+    Alert.alert(
+      'Acción no disponible',
+      'Por ahora no es posible salir de un grupo. Intenta de nuevo más tarde.'
+    );
   };
 
   return (

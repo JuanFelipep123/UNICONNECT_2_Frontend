@@ -6,13 +6,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SubjectPicker } from '../../search/components/SubjectPicker';
@@ -175,11 +175,8 @@ export function GroupsListScreen() {
   const [activeTab, setActiveTab] = useState<'admin' | 'participant'>('admin');
   const [refreshing, setRefreshing] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const selectedSubjectRef = useRef(selectedSubject);
-
-  useEffect(() => {
-    selectedSubjectRef.current = selectedSubject;
-  }, [selectedSubject]);
+  const shouldResetOnNextFocusRef = useRef(false);
+  const navigatingToDetailRef = useRef(false);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -187,37 +184,39 @@ export function GroupsListScreen() {
     setRefreshing(false);
   }, [reload]);
 
-  const refreshParticipantSubjects = useCallback(async () => {
-    const loadedSubjects = await loadSubjects();
-    const currentSelectedSubject = selectedSubjectRef.current;
-
-    if (!currentSelectedSubject) {
-      resetResults();
-      return;
-    }
-
-    const syncedSubject = loadedSubjects.find((subject) => subject.id === currentSelectedSubject.id);
-
-    if (!syncedSubject) {
+  // Reset búsqueda al cambiar de pestaña
+  useEffect(() => {
+    if (activeTab !== 'participant') {
       clearSelection();
       resetResults();
       setShowValidation(false);
-      return;
     }
+  }, [activeTab, clearSelection, resetResults]);
 
-    if (syncedSubject.name !== currentSelectedSubject.name) {
-      selectSubject(syncedSubject);
-    }
-
-    await searchGroups(syncedSubject.id);
-  }, [clearSelection, loadSubjects, resetResults, searchGroups, selectSubject]);
-
-  // Recargar al enfocar (incluye materias por si fueron editadas en perfil)
+  // Recargar datos al enfocar la pantalla.
+  // No se resetea la búsqueda al volver del detalle del grupo.
   useFocusEffect(
     useCallback(() => {
+      if (shouldResetOnNextFocusRef.current) {
+        clearSelection();
+        resetResults();
+        setShowValidation(false);
+        shouldResetOnNextFocusRef.current = false;
+      }
+
       reload();
-      refreshParticipantSubjects();
-    }, [refreshParticipantSubjects, reload])
+      loadSubjects();
+
+      return () => {
+        // Si navegamos a detalle, no resetear al volver.
+        if (navigatingToDetailRef.current) {
+          navigatingToDetailRef.current = false;
+        } else {
+          // Si salimos a otra sección (menu, otra pestaña), el próximo focus debe resetear.
+          shouldResetOnNextFocusRef.current = true;
+        }
+      };
+    }, [clearSelection, loadSubjects, reload, resetResults])
   );
 
   const handleCreateGroup = useCallback(() => {
@@ -231,6 +230,8 @@ export function GroupsListScreen() {
     const encodedDescription = encodeURIComponent(group.description ?? '');
     const encodedIsAdmin = encodeURIComponent(String(Boolean(group.is_admin)));
     const encodedIsMember = encodeURIComponent(String(Boolean(group.is_member)));
+
+    navigatingToDetailRef.current = true;
 
     router.push(
       `/study-groups/${group.id}?name=${encodedName}&subjectName=${encodedSubject}&description=${encodedDescription}&isAdmin=${encodedIsAdmin}&isMember=${encodedIsMember}`

@@ -144,4 +144,73 @@ export const subjectsHttpService = {
       };
     }
   },
+
+  /**
+   * Obtiene la información (id + nombre) de una materia mediante su ID.
+   * Este endpoint se usa como respaldo cuando la materia no está en el perfil del usuario.
+   */
+  async getSubjectById(subjectId: string, token: string): Promise<ApiResponse<Subject>> {
+    try {
+      const response = await fetch(`${SUBJECTS_ENDPOINT}/${subjectId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
+
+      const json = await readJson(response);
+
+      if (response.ok) {
+        let subjectPayload: unknown = json;
+
+        if (json && typeof json === 'object') {
+          const payload = json as Record<string, unknown>;
+          if (payload.data && typeof payload.data === 'object') {
+            subjectPayload = payload.data;
+          }
+        }
+
+        if (subjectPayload && typeof subjectPayload === 'object') {
+          const payload = subjectPayload as Record<string, unknown>;
+          const id =
+            (typeof payload.id === 'string' ? payload.id : '') ||
+            (typeof payload.subject_id === 'string' ? payload.subject_id : '') ||
+            (typeof payload.subjectId === 'string' ? payload.subjectId : '');
+          const name =
+            (typeof payload.name === 'string' ? payload.name : '') ||
+            (typeof payload.subject_name === 'string' ? payload.subject_name : '') ||
+            (typeof payload.subjectName === 'string' ? payload.subjectName : '');
+
+          if (id && name) {
+            return {
+              success: true,
+              data: {
+                id,
+                name,
+              },
+            };
+          }
+        }
+
+        return {
+          success: false,
+          error: 'No se encontró la materia.',
+        };
+      }
+
+      return {
+        success: false,
+        error: getErrorMessage(json, response.status),
+      };
+    } catch (error) {
+      console.error('[subjectsHttpService.getSubjectById] Error de red:', error);
+      return {
+        success: false,
+        error: 'Error de conexión. Verifica tu conexión a internet.',
+      };
+    }
+  },
 };
