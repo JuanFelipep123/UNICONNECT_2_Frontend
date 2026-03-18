@@ -7,12 +7,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -26,7 +26,7 @@ import { useAuthStore } from '@/src/store/authStore';
 const colors = groupsColors;
 
 export default function CreateStudyGroupScreen() {
-  const { token } = useAuthStore();
+  useAuthStore();
 
   // Hook para cargar materias del usuario
   const { subjects, loading: isLoadingSubjects, error: subjectsError } = useUserSubjects();
@@ -47,15 +47,13 @@ export default function CreateStudyGroupScreen() {
           {
             text: 'OK',
             onPress: () => {
-              router.replace({
-                pathname: '/study-groups/[id]',
-                params: {
-                  id: groupId,
-                  name: payload.name,
-                  subjectName: selectedSubjectName,
-                  description: payload.description ?? '',
-                },
-              } as any);
+              const encodedName = encodeURIComponent(payload.name);
+              const encodedSubjectName = encodeURIComponent(selectedSubjectName);
+              const encodedDescription = encodeURIComponent(payload.description ?? '');
+
+              router.replace(
+                `/study-groups/${groupId}?name=${encodedName}&subjectName=${encodedSubjectName}&description=${encodedDescription}&isAdmin=true&isMember=true`
+              );
             },
           },
         ]);

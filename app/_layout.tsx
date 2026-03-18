@@ -1,18 +1,18 @@
 import { router, Stack, useSegments } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    AppState,
-    AppStateStatus,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  AppState,
+  AppStateStatus,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { AppErrorBoundary } from '../src/components/AppErrorBoundary';
 import {
-    getOnboardingStatus,
-    OnboardingApiError,
+  getOnboardingStatus,
+  OnboardingApiError,
 } from '../src/features/onboarding/services/onboardingService';
 import { useAuthStore } from '../src/store/authStore';
 
@@ -197,6 +197,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="study-groups" />
         <Stack.Screen name="events/[id]" />
         <Stack.Screen name="auth/callback" />
         <Stack.Screen name="expo-auth-session" />

@@ -13,6 +13,7 @@ export const groupsColors = {
   border: '#E0E8F0',
   error: '#DC2626',
   danger: '#DC2626',
+  success: '#16A34A',
   placeholder: '#9CA3AF',
   overlay: 'rgba(0, 0, 0, 0.5)',
 } as const;
