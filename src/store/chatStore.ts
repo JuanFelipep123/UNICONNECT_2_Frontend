@@ -1,0 +1,180 @@
+import { create } from "zustand";
+import {
+  ChatAttachment,
+  ChatMessage,
+  Conversation,
+} from "../features/chat/types/chat.types";
+import chatApi from "../services/chatApi";
+import { supabase } from "../services/supabase";
+
+interface ChatState {
+  conversations: Conversation[];
+  messages: ChatMessage[];
+  loadingConversations: boolean;
+  loadingMessages: boolean;
+  loadingMore: boolean;
+  error: string | null;
+
+  loadConversations: () => Promise<void>;
+  getOrCreateConversation: (targetUserId: string) => Promise<string | null>;
+  loadMessages: (conversationId: string) => Promise<void>;
+  loadMoreMessages: (conversationId: string) => Promise<void>;
+  sendMessage: (
+    conversationId: string,
+    content?: string,
+    attachments?: ChatAttachment[],
+  ) => Promise<void>;
+  receiveMessage: (message: ChatMessage) => void;
+  uploadAndSendAttachment: (
+    conversationId: string,
+    fileUri: string,
+    fileName: string,
+    fileType: string,
+    fileSize: number,
+  ) => Promise<void>;
+  clearMessages: () => void;
+}
+
+export const useChatStore = create<ChatState>((set, get) => ({
+  conversations: [],
+  messages: [],
+  loadingConversations: false,
+  loadingMessages: false,
+  loadingMore: false,
+  error: null,
+
+  loadConversations: async () => {
+    set({ loadingConversations: true, error: null });
+    try {
+      const response = await chatApi.get<Conversation[]>("/api/conversations");
+      set({ conversations: response.data || [] });
+    } catch (error: any) {
+      console.error("Error loading conversations:", error);
+      set({ error: error.message || "Error cargando conversaciones" });
+    } finally {
+      set({ loadingConversations: false });
+    }
+  },
+
+  getOrCreateConversation: async (targetUserId: string) => {
+    try {
+      const response = await chatApi.post<Conversation>("/api/conversations", {
+        targetUserId,
+      });
+      return response.data.id;
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      return null;
+    }
+  },
+
+  loadMessages: async (conversationId: string) => {
+    set({ loadingMessages: true, error: null, messages: [] });
+    try {
+      const response = await chatApi.get<ChatMessage[]>(
+        `/api/conversations/${conversationId}/messages?limit=30`,
+      );
+      // Retain API order or transform? Usually APIs return recent first.
+      // If we use inverted FlatList, messages should be ordered freshest at index 0.
+      set({ messages: response.data || [] });
+    } catch (error: any) {
+      console.error("Error loading messages:", error);
+      set({ error: error.message || "Error cargando mensajes" });
+    } finally {
+      set({ loadingMessages: false });
+    }
+  },
+
+  loadMoreMessages: async (conversationId: string) => {
+    const { messages, loadingMore } = get();
+    if (loadingMore || messages.length === 0) return;
+
+    set({ loadingMore: true });
+    try {
+      // The oldest message is usually at the end of the array if newest is first (index 0)
+      // Wait, let's assume API returns chronological desc (idx 0 is newest).
+      const oldestMessageId = messages[messages.length - 1].id;
+      const response = await chatApi.get<ChatMessage[]>(
+        `/api/conversations/${conversationId}/messages?limit=30&before=${oldestMessageId}`,
+      );
+
+      if (response.data && response.data.length > 0) {
+        set({ messages: [...messages, ...response.data] });
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    } finally {
+      set({ loadingMore: false });
+    }
+  },
+
+  sendMessage: async (conversationId, content, attachments) => {
+    try {
+      const response = await chatApi.post<ChatMessage>(
+        `/api/conversations/${conversationId}/messages`,
+        {
+          content,
+          attachments,
+        },
+      );
+      // Actualización optimista: inyecta el mensaje apenas lo envía la API
+      const { receiveMessage } = get();
+      receiveMessage(response.data);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      throw error;
+    }
+  },
+
+  receiveMessage: (message: ChatMessage) => {
+    const { messages } = get();
+    const isDuplicate = messages.some((m) => m.id === message.id);
+    if (!isDuplicate) {
+      // If inverted FlatList, newest is at index 0
+      set({ messages: [message, ...messages] });
+    }
+  },
+
+  uploadAndSendAttachment: async (
+    conversationId,
+    fileUri,
+    fileName,
+    fileType,
+    fileSize,
+  ) => {
+    try {
+      // Create a unique filepath
+      const storagePath = `${conversationId}/${Date.now()}/${fileName}`;
+
+      const formData = new FormData();
+      formData.append("file", {
+        uri: fileUri,
+        name: fileName,
+        type: fileType,
+      } as any);
+
+      // We actually need RN Fetch Blob or File standard, let's use standard expo fetch blob fallback
+      const photoRes = await fetch(fileUri);
+      const blob = await photoRes.blob();
+
+      const { data, error } = await supabase.storage
+        .from("dm-attachments")
+        .upload(storagePath, blob, {
+          contentType: fileType,
+        });
+
+      if (error) {
+        throw new Error(`Error en subida Supabase: ${error.message}`);
+      }
+
+      await get().sendMessage(conversationId, undefined, [
+        { fileName, fileType, fileSize, storagePath },
+      ]);
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw error;
+    }
+  },
+
+  clearMessages: () => set({ messages: [] }),
+}));
