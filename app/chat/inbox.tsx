@@ -7,10 +7,11 @@ export default function InboxRoute() {
     <>
       <Stack.Screen
         options={{
+          headerShown: true,
           title: "Bandeja de entrada",
-          headerStyle: { backgroundColor: "#00284D" },
+          headerStyle: { backgroundColor: "#002147" },
           headerTintColor: "#FFFFFF",
-          headerTitleStyle: { fontWeight: "600" },
+          headerTitleStyle: { fontWeight: "600", fontSize: 18},
         }}
       />
       <InboxScreen />

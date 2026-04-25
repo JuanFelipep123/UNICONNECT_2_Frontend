@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import {
-  ChatAttachment,
-  ChatMessage,
-  Conversation,
+    ChatAttachment,
+    ChatMessage,
+    Conversation,
 } from "../features/chat/types/chat.types";
 import chatApi from "../services/chatApi";
 import { supabase } from "../services/supabase";
@@ -13,6 +13,7 @@ interface ChatState {
   loadingConversations: boolean;
   loadingMessages: boolean;
   loadingMore: boolean;
+  hasMoreMessages: boolean;
   error: string | null;
 
   loadConversations: () => Promise<void>;
@@ -41,6 +42,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadingConversations: false,
   loadingMessages: false,
   loadingMore: false,
+  hasMoreMessages: true,
   error: null,
 
   loadConversations: async () => {
@@ -69,14 +71,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   loadMessages: async (conversationId: string) => {
-    set({ loadingMessages: true, error: null, messages: [] });
+    set({
+      loadingMessages: true,
+      error: null,
+      messages: [],
+      hasMoreMessages: true,
+    });
     try {
       const response = await chatApi.get<ChatMessage[]>(
-        `/api/conversations/${conversationId}/messages?limit=30`,
+        `/api/conversations/${conversationId}/messages?limit=20`,
       );
       // Retain API order or transform? Usually APIs return recent first.
       // If we use inverted FlatList, messages should be ordered freshest at index 0.
-      set({ messages: response.data || [] });
+      const data = response.data || [];
+      set({
+        messages: data,
+        hasMoreMessages: data.length === 20,
+      });
     } catch (error: any) {
       console.error("Error loading messages:", error);
       set({ error: error.message || "Error cargando mensajes" });
@@ -86,8 +97,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   loadMoreMessages: async (conversationId: string) => {
-    const { messages, loadingMore } = get();
-    if (loadingMore || messages.length === 0) return;
+    const { messages, loadingMore, hasMoreMessages } = get();
+    if (loadingMore || messages.length === 0 || !hasMoreMessages) return;
 
     set({ loadingMore: true });
     try {
@@ -95,11 +106,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Wait, let's assume API returns chronological desc (idx 0 is newest).
       const oldestMessageId = messages[messages.length - 1].id;
       const response = await chatApi.get<ChatMessage[]>(
-        `/api/conversations/${conversationId}/messages?limit=30&before=${oldestMessageId}`,
+        `/api/conversations/${conversationId}/messages?limit=20&before=${oldestMessageId}`,
       );
 
-      if (response.data && response.data.length > 0) {
-        set({ messages: [...messages, ...response.data] });
+      const newData = response.data || [];
+      if (newData.length > 0) {
+        set({
+          messages: [...messages, ...newData],
+          hasMoreMessages: newData.length === 20,
+        });
+      } else {
+        set({ hasMoreMessages: false });
       }
     } catch (error) {
       console.error("Error loading more messages:", error);
@@ -157,7 +174,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const photoRes = await fetch(fileUri);
       const blob = await photoRes.blob();
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("dm-attachments")
         .upload(storagePath, blob, {
           contentType: fileType,

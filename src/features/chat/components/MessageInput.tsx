@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { AttachmentButton } from "./AttachmentButton";
 
@@ -55,16 +55,18 @@ export const MessageInput: React.FC<Props> = ({ onSend, isSending }) => {
       <View style={styles.container}>
         <AttachmentButton onAttach={setFile} disabled={isSending} />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Escribe un mensaje..."
-          placeholderTextColor="#94A3B8"
-          value={text}
-          onChangeText={setText}
-          multiline
-          maxLength={500}
-          editable={!isSending}
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor="#94A3B8"
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={500}
+            editable={!isSending}
+          />
+        </View>
 
         <TouchableOpacity
           style={[
@@ -92,16 +94,15 @@ export const MessageInput: React.FC<Props> = ({ onSend, isSending }) => {
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
     paddingHorizontal: 8,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingBottom: 24, // Safe area for newer phones without standard layout
   },
   attachmentPreview: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#E2E8F0",
     borderRadius: 8,
     padding: 8,
     marginBottom: 8,
@@ -120,32 +121,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
   },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 24,
+    marginHorizontal: 8,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    maxHeight: 120,
+  },
   input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 100,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    fontSize: 15,
+    fontSize: 16,
     color: "#0F172A",
-    marginHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: 48,
+  },
+  emojiButton: {
+    marginLeft: 8,
   },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#00284D",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 2, // alineado con el input de una línea
   },
   sendButtonDisabled: {
-    backgroundColor: "#CBD5E1",
+    backgroundColor: "#94A3B8",
   },
   sendIcon: {
-    marginLeft: 4, // alinear visualmente el icono de enviar (paper plane)
+    marginLeft: 4,
   },
 });

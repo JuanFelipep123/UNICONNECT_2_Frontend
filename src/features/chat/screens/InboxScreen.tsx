@@ -28,10 +28,14 @@ export const InboxScreen: React.FC = () => {
   const handlePressConversation = (
     conversationId: string,
     partnerName?: string,
+    partnerAvatar?: string,
   ) => {
     router.push({
       pathname: `/chat/${conversationId}` as any,
-      params: { partnerName: partnerName || "Usuario" },
+      params: {
+        partnerName: partnerName || "Usuario",
+        partnerAvatar: partnerAvatar || "",
+      },
     });
   };
 
@@ -71,7 +75,11 @@ export const InboxScreen: React.FC = () => {
           <ConversationItem
             conversation={item}
             onPress={() =>
-              handlePressConversation(item.id, item.otherParticipant.name)
+              handlePressConversation(
+                item.id,
+                item.otherParticipant?.name,
+                item.otherParticipant?.avatarUrl,
+              )
             }
           />
         )}

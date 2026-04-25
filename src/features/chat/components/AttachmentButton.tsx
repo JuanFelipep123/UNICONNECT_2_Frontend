@@ -3,12 +3,12 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-    Alert,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface AttachmentFile {
@@ -81,7 +81,7 @@ export const AttachmentButton: React.FC<Props> = ({ onAttach, disabled }) => {
         onPress={() => setModalVisible(true)}
         disabled={disabled}
       >
-        <Ionicons name="attach" size={26} color="#64748B" />
+        <Ionicons name="add" size={28} color="#64748B" />
       </TouchableOpacity>
 
       <Modal transparent visible={modalVisible} animationType="fade">
