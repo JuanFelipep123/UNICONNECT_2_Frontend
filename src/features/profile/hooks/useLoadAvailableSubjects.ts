@@ -60,9 +60,7 @@ export const useLoadAvailableSubjects = (
       } else {
         const errorMsg = response.error || 'Error desconocido al cargar materias disponibles';
         console.error('[useLoadAvailableSubjects] Error:', errorMsg);
-        const appError = parseError({ message: errorMsg });
-        const errorMessage = getErrorMessage(appError);
-        setError(errorMessage);
+        setError(errorMsg);
         setSubjects([]);
       }
     } catch (err) {

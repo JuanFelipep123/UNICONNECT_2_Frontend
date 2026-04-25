@@ -44,6 +44,7 @@ export const useLoadProfileSubjects = (
       console.log('\n[useLoadProfileSubjects RELOAD] Respuesta recibida:');
       console.log('  success:', response.success);
       console.log('  dataLength:', response.data?.length);
+      console.log('data: ', response.data);
       console.log('  error:', response.error);
 
       if (response.success && response.data) {

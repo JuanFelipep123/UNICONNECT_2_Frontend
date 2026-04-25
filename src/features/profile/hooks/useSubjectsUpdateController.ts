@@ -259,7 +259,7 @@ export const useSubjectsUpdateController = (isOnboarding = false) => {
     handleRemoveSubject,
     handleSave,
     isLoading: loadingProfile || loadingAvailable,
-    loadError: errorProfile || errorAvailable,
+    loadError: errorProfile,
     errorProfile,
     errorAvailable,
   };

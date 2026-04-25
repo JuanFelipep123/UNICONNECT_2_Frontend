@@ -110,6 +110,15 @@ export const SubjectsUpdateScreen = ({ isOnboarding = false }: SubjectsUpdateScr
             nestedScrollEnabled
             scrollEventThrottle={16}
           >
+          {!loadError && errorAvailable ? (
+            <ErrorBanner
+              message={`No se pudieron cargar las materias disponibles: ${errorAvailable}`}
+              onClose={handleRetry}
+              colors={colors}
+              styles={styles}
+            />
+          ) : null}
+
           {isOnboarding ? (
             <OnboardingSubjectsContent
               colors={colors}
