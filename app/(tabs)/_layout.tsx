@@ -63,9 +63,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   }, [loadProfile, profileRefreshKey]);
 
   useEffect(() => {
-    const unsubscribe = (props.navigation as any).addListener("drawerOpen", () => {
-      loadProfile();
-    });
+    const unsubscribe = (props.navigation as any).addListener(
+      "drawerOpen",
+      () => {
+        loadProfile();
+      },
+    );
 
     return unsubscribe;
   }, [loadProfile, props.navigation]);
@@ -96,15 +99,10 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     return `${value}${separator}v=${avatarCacheBuster}`;
   }, [avatarCacheBuster, profile?.avatar_url]);
 
-  const handleNavigate = (route: "index" | "explore" | "profile") => {
+  const handleNavigate = (
+    route: "index" | "explore" | "profile" | "events",
+  ) => {
     props.navigation.navigate(route);
-  };
-
-  const handleComingSoon = (featureName: string) => {
-    Alert.alert(
-      "Próximamente",
-      `${featureName} estará disponible en una próxima actualización.`,
-    );
   };
 
   const handleLogoutWithConfirmation = () => {
@@ -221,13 +219,16 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
           <DrawerItem
             label="Eventos"
-            onPress={() => handleComingSoon("Eventos")}
+            onPress={() => handleNavigate("events")}
+            focused={activeRouteName === "events"}
             labelStyle={styles.drawerItemLabel}
             style={styles.drawerItem}
             icon={({ size, color }) => (
               <Ionicons name="calendar-outline" size={size} color={color} />
             )}
+            activeTintColor="#F4D28C"
             inactiveTintColor="#FFFFFF"
+            activeBackgroundColor="rgba(197, 160, 89, 0.18)"
           />
 
           <DrawerItem
@@ -338,6 +339,13 @@ export default function TabLayout() {
         options={{
           title: "Perfil",
           drawerLabel: "Perfil",
+        }}
+      />
+      <Drawer.Screen
+        name="events"
+        options={{
+          title: "Eventos",
+          drawerLabel: "Eventos",
         }}
       />
     </Drawer>
