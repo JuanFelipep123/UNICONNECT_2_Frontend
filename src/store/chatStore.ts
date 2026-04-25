@@ -1,3 +1,5 @@
+import { decode } from "base64-arraybuffer";
+import * as FileSystem from "expo-file-system/legacy";
 import { create } from "zustand";
 import {
     ChatAttachment,
@@ -159,37 +161,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
     fileType,
     fileSize,
   ) => {
+    const storagePath = `${conversationId}/${Date.now()}/${fileName}`;
+
+    // Step 1: read file as base64 (fetch(fileUri).blob() fails in React Native)
+    let base64: string;
     try {
-      // Create a unique filepath
-      const storagePath = `${conversationId}/${Date.now()}/${fileName}`;
+      base64 = await FileSystem.readAsStringAsync(fileUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    } catch (e: any) {
+      throw new Error(`Error leyendo el archivo local: ${e?.message ?? e}`);
+    }
 
-      const formData = new FormData();
-      formData.append("file", {
-        uri: fileUri,
-        name: fileName,
-        type: fileType,
-      } as any);
-
-      // We actually need RN Fetch Blob or File standard, let's use standard expo fetch blob fallback
-      const photoRes = await fetch(fileUri);
-      const blob = await photoRes.blob();
-
+    // Step 2: upload ArrayBuffer to Supabase Storage
+    try {
       const { error } = await supabase.storage
         .from("dm-attachments")
-        .upload(storagePath, blob, {
+        .upload(storagePath, decode(base64), {
           contentType: fileType,
         });
-
       if (error) {
-        throw new Error(`Error en subida Supabase: ${error.message}`);
+        throw new Error(`Error subiendo a Supabase Storage: ${error.message}`);
       }
+    } catch (e: any) {
+      throw new Error(e?.message ?? `Error en la subida a Storage`);
+    }
 
+    // Step 3: notify the chat microservice with the attachment metadata
+    try {
       await get().sendMessage(conversationId, undefined, [
         { fileName, fileType, fileSize, storagePath },
       ]);
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw error;
+    } catch (e: any) {
+      throw new Error(`Archivo subido pero falló el envío al microservicio: ${e?.message ?? e}`);
     }
   },
 

@@ -1,7 +1,31 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ChatAttachment, ChatMessage } from "../types/chat.types";
+
+function getFileIconConfig(mimeType: string): {
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
+  bgColor: string;
+  iconColor: string;
+} {
+  if (mimeType?.startsWith("image/")) {
+    return { icon: "image", bgColor: "#DCFCE7", iconColor: "#16A34A" };
+  }
+  if (mimeType === "application/pdf") {
+    return { icon: "file-pdf-box", bgColor: "#FEE2E2", iconColor: "#DC2626" };
+  }
+  if (mimeType?.includes("excel") || mimeType?.includes("spreadsheet")) {
+    return { icon: "microsoft-excel", bgColor: "#D1FAE5", iconColor: "#059669" };
+  }
+  return { icon: "file-document-outline", bgColor: "#E2E8F0", iconColor: "#475569" };
+}
+
+function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface Props {
   message: ChatMessage;
@@ -37,38 +61,34 @@ export const MessageBubble: React.FC<Props> = ({
         {message.attachments && message.attachments.length > 0 && (
           <View style={styles.attachmentsContainer}>
             {message.attachments.map((att, index) => {
-              const mbSize = (att.fileSize / (1024 * 1024)).toFixed(1);
-              const ext =
-                att.fileName.split(".").pop()?.toUpperCase() || "FILE";
+              const { icon, bgColor, iconColor } = getFileIconConfig(att.fileType);
+              const sizeLabel = formatFileSize(att.fileSize);
               return (
                 <TouchableOpacity
                   key={att.id || index}
                   style={[
-                    styles.attachmentCard,
-                    isOwnMessage
-                      ? styles.ownAttachmentCard
-                      : styles.partnerAttachmentCard,
+                    styles.attachmentChip,
+                    isOwnMessage ? styles.ownChip : styles.partnerChip,
                   ]}
                   onPress={() => onAttachmentPress(att)}
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.attachmentIconBox}>
-                    <Ionicons name="document-text" size={24} color="#FFFFFF" />
+                  <View style={[styles.chipIconBox, { backgroundColor: bgColor }]}>
+                    <MaterialCommunityIcons name={icon} size={20} color={iconColor} />
                   </View>
-                  <View style={styles.attachmentInfo}>
+                  <View style={styles.chipTextBox}>
                     <Text
                       style={[
-                        styles.attachmentName,
-                        isOwnMessage
-                          ? styles.ownAttachmentText
-                          : styles.partnerAttachmentText,
+                        styles.chipFileName,
+                        isOwnMessage ? styles.ownAttachmentText : styles.partnerAttachmentText,
                       ]}
                       numberOfLines={1}
                     >
                       {att.fileName}
                     </Text>
-                    <Text style={styles.attachmentSubText}>
-                      {mbSize} MB • {ext}
-                    </Text>
+                    {sizeLabel ? (
+                      <Text style={styles.chipFileSize}>{sizeLabel}</Text>
+                    ) : null}
                   </View>
                 </TouchableOpacity>
               );
@@ -118,6 +138,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingHorizontal: 16,
     maxWidth: "85%",
+    minWidth: 180,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -131,6 +152,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingHorizontal: 16,
     maxWidth: "85%",
+    minWidth: 180, 
     borderWidth: 1,
     borderColor: "#E2E8F0",
     shadowColor: "#000",
@@ -165,45 +187,47 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
   },
   attachmentsContainer: {
-    marginTop: 8,
+    marginTop: 6,
+    gap: 4,
   },
-  attachmentCard: {
+  attachmentChip: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    borderRadius: 12,
-    marginBottom: 4,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    alignSelf: "stretch",
   },
-  ownAttachmentCard: {
+  ownChip: {
+    backgroundColor: "rgba(255,255,255,0.13)",
+  },
+  partnerChip: {
     backgroundColor: "#F1F5F9",
   },
-  partnerAttachmentCard: {
-    backgroundColor: "#F1F5F9",
-  },
-  attachmentIconBox: {
-    backgroundColor: "#FCA5A5", // Soft red/pink for the icon back, matching the image reference
-    height: 40,
-    width: 40,
-    borderRadius: 8,
+  chipIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 7,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 8,
+    flexShrink: 0,
   },
-  attachmentInfo: {
-    marginLeft: 12,
+  chipTextBox: {
     flex: 1,
+    minWidth: 0,
   },
-  attachmentName: {
-    fontSize: 14,
+  chipFileName: {
+    fontSize: 13,
     fontWeight: "500",
-    flexShrink: 1,
   },
-  attachmentSubText: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 2,
+  chipFileSize: {
+    fontSize: 11,
+    color: "#94A3B8",
+    marginTop: 1,
   },
   ownAttachmentText: {
-    color: "#0F172A",
+    color: "#FFFFFF",
   },
   partnerAttachmentText: {
     color: "#0F172A",
