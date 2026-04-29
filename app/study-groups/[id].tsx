@@ -6,7 +6,8 @@
 import { groupsColors } from '@/src/features/groups/constants/colors';
 import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
 import { useAuthStore } from '@/src/store/authStore';
-import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +19,8 @@ const tabs = ['Miembros', 'Horarios', 'Archivos'];
 export default function StudyGroupDetailScreen() {
   const { id, name, subjectName, description, isAdmin: isAdminParam, isMember: isMemberParam } = useLocalSearchParams();
   const groupId = typeof id === 'string' ? id : id?.[0];
-  const { group, loading, joinGroup, leaveGroup } = useGroupDetail(groupId ?? '');
+  const router = useRouter();
+  const { group, loading, joinGroup } = useGroupDetail(groupId ?? '');
   const { userId } = useAuthStore();
   const [localIsMember, setLocalIsMember] = React.useState<boolean | null>(null);
   const [localIsAdmin, setLocalIsAdmin] = React.useState<boolean | null>(null);
@@ -96,10 +98,15 @@ export default function StudyGroupDetailScreen() {
   };
 
   const handleLeave = () => {
-    // Esta funcionalidad aún no debe realizarse. Solo mostramos un mensaje al usuario.
     Alert.alert(
       'Acción no disponible',
       'Por ahora no es posible salir de un grupo. Intenta de nuevo más tarde.'
+    );
+  };
+
+  const handleGoToWall = () => {
+    router.push(
+      `/study-groups/wall?groupId=${groupId}&groupName=${encodeURIComponent(groupName || '')}`
     );
   };
 
@@ -171,31 +178,45 @@ export default function StudyGroupDetailScreen() {
 
         {/* Footer action */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={
-              loading
-                ? [styles.actionButton, styles.actionButtonDisabled]
-                : isAdmin || isMember
-                ? [styles.actionButton, styles.actionButtonDanger]
-                : styles.actionButton
-            }
-            activeOpacity={0.7}
-            onPress={isAdmin || isMember ? handleLeave : handleJoin}
-            disabled={loading}
-          >
-            {isJoining ? (
-              <>
-                <ActivityIndicator size="small" color="#FFFFFF" style={styles.actionButtonSpinner} />
-                <Text style={[styles.actionButtonText, styles.actionButtonTextWithIcon]}>
-                  {'Unirme al grupo'.toUpperCase()}
+          {isAdmin || isMember ? (
+            <>
+              <TouchableOpacity
+                style={styles.wallButton}
+                activeOpacity={0.8}
+                onPress={handleGoToWall}
+              >
+                <Ionicons name="chatbubbles-outline" size={18} color="#FFFFFF" style={styles.wallButtonIcon} />
+                <Text style={styles.actionButtonText}>MURO DEL GRUPO</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonDanger, styles.leaveButton]}
+                activeOpacity={0.7}
+                onPress={handleLeave}
+              >
+                <Text style={styles.actionButtonText}>
+                  {isAdmin ? 'ABANDONAR' : 'SALIR DEL GRUPO'}
                 </Text>
-              </>
-            ) : (
-              <Text style={styles.actionButtonText}>
-                {(isAdmin ? 'Abandonar' : isMember ? 'Salir del grupo' : 'Unirme al grupo').toUpperCase()}
-              </Text>
-            )}
-          </TouchableOpacity>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={loading || isJoining ? [styles.actionButton, styles.actionButtonDisabled] : styles.actionButton}
+              activeOpacity={0.7}
+              onPress={handleJoin}
+              disabled={loading || isJoining}
+            >
+              {isJoining ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={styles.actionButtonSpinner} />
+                  <Text style={[styles.actionButtonText, styles.actionButtonTextWithIcon]}>
+                    UNIRME AL GRUPO
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.actionButtonText}>UNIRME AL GRUPO</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -278,6 +299,21 @@ const styles = StyleSheet.create({
   },
   actionButtonDanger: {
     backgroundColor: colors.danger,
+  },
+  wallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  wallButtonIcon: {
+    marginRight: 8,
+  },
+  leaveButton: {
+    marginTop: 8,
   },
   infoRow: {
     marginBottom: 12,

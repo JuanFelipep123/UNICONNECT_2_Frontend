@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_USER_ID_KEY = 'auth_user_id';
+const ONBOARDING_DONE_KEY = 'onboarding_done';
 
 interface AuthState {
   userId: string | null;
@@ -32,11 +33,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   onboardingResolved: false,
   needsCompleteProfile: false,
   isSessionCleared: false,
-  
+
   setUserId: (id: string) => {
     set({ userId: id });
   },
-  
+
   setToken: (token: string) => {
     set({ token });
   },
@@ -51,20 +52,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     await SecureStore.setItemAsync(AUTH_USER_ID_KEY, userId);
     await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
+    if (!needsOnboarding) {
+      await SecureStore.setItemAsync(ONBOARDING_DONE_KEY, 'true');
+    }
   },
 
   setNeedsOnboarding: (value: boolean) => {
     set({ needsOnboarding: value });
+    if (!value) {
+      // Persist so subsequent cold starts skip the backend check
+      SecureStore.setItemAsync(ONBOARDING_DONE_KEY, 'true').catch(() => {});
+    }
   },
 
   setOnboardingResolved: (value: boolean) => {
     set({ onboardingResolved: value });
   },
-  
+
   setNeedsCompleteProfile: (value: boolean) => {
     set({ needsCompleteProfile: value });
   },
-  
+
   markProfileAsComplete: () => {
     set({ needsCompleteProfile: false });
   },
@@ -81,10 +89,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     let storedToken: string | null = null;
     let storedUserId: string | null = null;
+    let onboardingDone: string | null = null;
 
     try {
-      storedToken = await SecureStore.getItemAsync(AUTH_TOKEN_KEY);
-      storedUserId = await SecureStore.getItemAsync(AUTH_USER_ID_KEY);
+      [storedToken, storedUserId, onboardingDone] = await Promise.all([
+        SecureStore.getItemAsync(AUTH_TOKEN_KEY),
+        SecureStore.getItemAsync(AUTH_USER_ID_KEY),
+        SecureStore.getItemAsync(ONBOARDING_DONE_KEY),
+      ]);
     } catch (error) {
       console.error('[authStore] Error leyendo SecureStore:', error);
       set({
@@ -97,15 +109,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     if (storedToken && storedUserId) {
-      // Keep onboarding unresolved until backend status endpoint confirms it.
+      const alreadyDone = onboardingDone === 'true';
       set({
         token: storedToken,
         userId: storedUserId,
-        needsOnboarding: null,
-        onboardingResolved: false,
+        needsOnboarding: alreadyDone ? false : null,
+        onboardingResolved: alreadyDone,
         isSessionCleared: false,
       });
-      console.log('[authStore] ✓ Sesion restaurada desde SecureStore');
+      console.log(
+        '[authStore] ✓ Sesion restaurada desde SecureStore',
+        alreadyDone ? '(onboarding ya completado)' : '(onboarding pendiente de verificar)',
+      );
       return;
     }
 
@@ -113,8 +128,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   clearSession: async () => {
-    await SecureStore.deleteItemAsync(AUTH_USER_ID_KEY);
-    await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
+    await Promise.all([
+      SecureStore.deleteItemAsync(AUTH_USER_ID_KEY),
+      SecureStore.deleteItemAsync(AUTH_TOKEN_KEY),
+      SecureStore.deleteItemAsync(ONBOARDING_DONE_KEY),
+    ]);
     set({
       userId: null,
       token: null,

@@ -7,7 +7,6 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -84,8 +83,7 @@ export const ChatScreen: React.FC = () => {
 
   const Container = KeyboardAvoidingView;
   const containerProps = {
-    behavior:
-      Platform.OS === "ios" ? ("padding" as const) : ("height" as const),
+    behavior: "padding" as const,
     keyboardVerticalOffset: 0,
   };
 
