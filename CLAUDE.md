@@ -71,7 +71,7 @@ Two Zustand stores in `src/store/`:
 
 | File | Transport | Purpose |
 |------|-----------|---------|
-| `api.ts` | — | Base URL config. In dev, auto-detects machine IP via `Constants.expoConfig.hostUri`. Falls back to `EXPO_PUBLIC_API_BASE_URL` (port 3001) and `EXPO_PUBLIC_CHAT_SERVICE_URL` (port 3003). |
+| `api.ts` | — | Base URL config. In dev, auto-detects machine IP via `Constants.expoConfig.hostUri`. Falls back to `EXPO_PUBLIC_API_BASE_URL` (port 3001) and `EXPO_PUBLIC_CHAT_SERVICE_URL` (port 3004). |
 | `profileHttpService.ts` | Fetch + FormData | Profile CRUD, avatar upload, subjects |
 | `chatApi.ts` | Axios (with auth interceptor) | Conversation list, message history |
 | `chatSocket.ts` | Socket.io | Real-time send/receive |
@@ -85,7 +85,7 @@ Create `.env` at project root:
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://<backend-host>:3001
-EXPO_PUBLIC_CHAT_SERVICE_URL=http://<backend-host>:3003
+EXPO_PUBLIC_CHAT_SERVICE_URL=http://<backend-host>:3004
 EXPO_PUBLIC_API_TOKEN=<backend-token>
 EXPO_PUBLIC_SUPABASE_URL=<supabase-url>
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<supabase-anon-key>

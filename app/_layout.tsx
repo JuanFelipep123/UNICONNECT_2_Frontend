@@ -1,5 +1,5 @@
 import { router, Stack, useSegments } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   AppState,
@@ -31,8 +31,10 @@ export default function RootLayout() {
   const [isHydrating, setIsHydrating] = useState(true);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const lastOnboardingCheckAtRef = useRef(0);
+  const APP_STATE_RECHECK_COOLDOWN_MS = 12000;
 
-  const checkOnboardingStatus = useCallback(async () => {
+  const checkOnboardingStatus = useCallback(async (source: 'initial' | 'appState' | 'retry' = 'initial') => {
     if (!token) {
       return;
     }
@@ -43,11 +45,19 @@ export default function RootLayout() {
       setNeedsOnboarding(status.needsOnboarding);
       setOnboardingError(null);
       setOnboardingResolved(true);
+      lastOnboardingCheckAtRef.current = Date.now();
     } catch (error) {
-      if (error instanceof OnboardingApiError && [401, 403, 404].includes(error.status)) {
+      if (error instanceof OnboardingApiError && [401, 403].includes(error.status)) {
         // Token persisted locally but user/session is no longer valid in backend.
         await clearSession();
         router.replace('/login');
+        return;
+      }
+
+      if (source === 'appState') {
+        // Returning from system pickers can briefly interrupt connectivity.
+        // Keep last known auth/onboarding state and avoid blocking the app for transient failures.
+        console.warn('[RootLayout] Revalidacion en foreground omitida por error transitorio:', error);
         return;
       }
 
@@ -88,7 +98,7 @@ export default function RootLayout() {
       return;
     }
 
-    checkOnboardingStatus();
+    checkOnboardingStatus('initial');
   }, [
     checkOnboardingStatus,
     isCheckingOnboarding,
@@ -106,9 +116,16 @@ export default function RootLayout() {
 
       // If account/session was deleted server-side while app was backgrounded,
       // revalidate and force local logout to prevent redirect loops.
-      if (token && onboardingResolved && !isCheckingOnboarding && !onboardingError) {
-        checkOnboardingStatus();
+      if (!token || !onboardingResolved || isCheckingOnboarding || Boolean(onboardingError)) {
+        return;
       }
+
+      const now = Date.now();
+      if (now - lastOnboardingCheckAtRef.current < APP_STATE_RECHECK_COOLDOWN_MS) {
+        return;
+      }
+
+      checkOnboardingStatus('appState');
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
@@ -167,7 +184,7 @@ export default function RootLayout() {
           style={({ pressed }) => [styles.retryButton, pressed && styles.retryButtonPressed]}
           onPress={() => {
             setOnboardingError(null);
-            checkOnboardingStatus();
+            checkOnboardingStatus('retry');
           }}
           disabled={isCheckingOnboarding}
         >

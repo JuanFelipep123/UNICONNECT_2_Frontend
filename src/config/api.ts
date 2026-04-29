@@ -1,10 +1,31 @@
 import Constants from "expo-constants";
 
-const DEFAULT_API_PORT = "3001";
+const DEFAULT_API_PORT = "3000";
 const DEFAULT_API_PATH = "/api";
-const DEFAULT_CHAT_PORT = "3003";
+const DEFAULT_CHAT_PORT = "3004";
 
 const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, "");
+
+function ensureApiPath(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const normalizedPath = parsed.pathname.replace(/\/+$/, "");
+
+    if (!normalizedPath || normalizedPath === "") {
+      parsed.pathname = DEFAULT_API_PATH;
+      return parsed.toString().replace(/\/+$/, "");
+    }
+
+    if (normalizedPath === "/") {
+      parsed.pathname = DEFAULT_API_PATH;
+      return parsed.toString().replace(/\/+$/, "");
+    }
+
+    return rawUrl;
+  } catch {
+    return rawUrl;
+  }
+}
 
 export function getApiBaseUrl(): string {
   const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -14,7 +35,7 @@ export function getApiBaseUrl(): string {
 
   const backendPublicUrl = process.env.BACKEND_PUBLIC_URL;
   if (backendPublicUrl && backendPublicUrl.trim().length > 0) {
-    return normalizeUrl(backendPublicUrl);
+    return normalizeUrl(ensureApiPath(backendPublicUrl));
   }
 
   const hostUri = Constants.expoConfig?.hostUri;
