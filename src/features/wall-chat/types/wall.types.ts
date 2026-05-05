@@ -12,6 +12,9 @@ export interface WallPost {
   id: string;
   groupId: string;
   senderId: string;
+  /** Nombre para mostrar; lo envía el backend en GET/POST del muro y en eventos WS. */
+  senderName?: string;
+  avatarUrl?: string | null;
   content?: string;
   createdAt: string;
   attachments?: WallPostAttachment[];

@@ -27,8 +27,14 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function shortSenderId(senderId: string): string {
+function fallbackSenderLabel(senderId: string): string {
   return senderId ? `@${senderId.slice(0, 8)}` : "Miembro";
+}
+
+function displaySenderName(post: WallPost): string {
+  const name = post.senderName?.trim();
+  if (name) return name;
+  return fallbackSenderLabel(post.senderId);
 }
 
 interface Props {
@@ -38,6 +44,7 @@ interface Props {
 }
 
 export const WallPostBubble: React.FC<Props> = ({ post, isOwnPost, onAttachmentPress }) => {
+  const senderLabel = displaySenderName(post);
   const time = new Date(post.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -51,9 +58,12 @@ export const WallPostBubble: React.FC<Props> = ({ post, isOwnPost, onAttachmentP
       ]}
     >
       <View style={isOwnPost ? styles.ownBubble : styles.partnerBubble}>
-        {!isOwnPost && (
-          <Text style={styles.senderLabel}>{shortSenderId(post.senderId)}</Text>
-        )}
+        <Text
+          style={[styles.senderLabel, isOwnPost && styles.senderLabelOwn]}
+          numberOfLines={1}
+        >
+          {senderLabel}
+        </Text>
 
         {post.content ? (
           <Text style={isOwnPost ? styles.ownText : styles.partnerText}>
@@ -159,6 +169,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#C5A059",
     marginBottom: 4,
+  },
+  senderLabelOwn: {
+    color: "rgba(255, 255, 255, 0.85)",
   },
   ownText: {
     color: "#FFFFFF",

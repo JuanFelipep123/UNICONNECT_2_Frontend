@@ -68,7 +68,7 @@ const GroupCardItem = memo<{ item: StudyGroup; onPress: (group: StudyGroup) => v
               </Text>
             </View>
 
-            {item.member_count && (
+            {(item.member_count ?? 0) > 0 && (
               <View style={styles.metaItem}>
                 <MaterialIcons name="people" size={14} color={colors.label} />
                 <Text style={[styles.metaText, { color: colors.label }]}> 
