@@ -122,8 +122,29 @@ const resolveSubject = (rawGroup: Record<string, unknown>) => {
   return undefined;
 };
 
+const toUserIdsArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (typeof item === 'number') return String(item);
+      if (item && typeof item === 'object') {
+        const maybeUser = item as Record<string, unknown>;
+        if (typeof maybeUser.id === 'string') return maybeUser.id;
+        if (typeof maybeUser.userId === 'string') return maybeUser.userId;
+        if (typeof maybeUser.user_id === 'string') return maybeUser.user_id;
+        if (typeof maybeUser.profile_id === 'string') return maybeUser.profile_id;
+      }
+      return '';
+    })
+    .filter((id) => id.length > 0);
+};
+
 const normalizeGroup = (raw: unknown): StudyGroup => {
   const rawGroup = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const members = toUserIdsArray(rawGroup.members);
+  const pendingRequests = toUserIdsArray(rawGroup.pendingRequests ?? rawGroup.pending_requests);
 
   return {
     id: toStringSafe(rawGroup.id),
@@ -142,7 +163,10 @@ const normalizeGroup = (raw: unknown): StudyGroup => {
     member_count:
       toNumberSafe(rawGroup.member_count) ??
       toNumberSafe(rawGroup.memberCount) ??
-      toNumberSafe(rawGroup.members_count),
+      toNumberSafe(rawGroup.members_count) ??
+      members.length,
+    members,
+    pendingRequests,
     is_member: toBooleanSafe(rawGroup.is_member ?? rawGroup.isMember),
     is_admin: toBooleanSafe(rawGroup.is_admin ?? rawGroup.isAdmin),
   };
@@ -452,5 +476,68 @@ export const groupsHttpService = {
       success: true,
       data: normalizedGroup,
     };
+  },
+
+  /**
+   * Solicitar transferencia de administración de un grupo
+   * POST /api/study-groups/:groupId/transfer-admin
+   */
+  async transferAdmin(groupId: string, toUserId: string, token: string): Promise<ApiResponse<void>> {
+    const url = `${GROUPS_ENDPOINT}/${groupId}/transfer-admin`;
+
+    const result = await executeFetch(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newAdminUserId: toUserId }),
+      })
+    );
+
+    if (!result.ok) {
+      return {
+        success: false,
+        error:
+          result.status === 0
+            ? 'Error de conexión. Verifica tu conexión a internet.'
+            : getErrorMessage(result.json, result.status),
+      };
+    }
+
+    return { success: true };
+  },
+
+  /**
+   * Responder a una solicitud de transferencia de administración
+   * POST /api/study-groups/:groupId/transfer-admin/respond
+   */
+  async respondAdminTransfer(groupId: string, accept: boolean, token: string): Promise<ApiResponse<void>> {
+    const url = `${GROUPS_ENDPOINT}/${groupId}/transfer-admin/respond`;
+    const action = accept ? 'accept' : 'reject';
+
+    const result = await executeFetch(() =>
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action }),
+      })
+    );
+
+    if (!result.ok) {
+      return {
+        success: false,
+        error:
+          result.status === 0
+            ? 'Error de conexión. Verifica tu conexión a internet.'
+            : getErrorMessage(result.json, result.status),
+      };
+    }
+
+    return { success: true };
   },
 };
