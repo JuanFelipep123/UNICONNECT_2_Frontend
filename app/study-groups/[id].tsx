@@ -6,10 +6,12 @@
 import { groupsColors } from '@/src/features/groups/constants/colors';
 import { useGroupDetail } from '@/src/features/groups/hooks/useGroupDetail';
 import { useAuthStore } from '@/src/store/authStore';
+import { profileHttpService } from '@/src/services/profileHttpService';
+import type { ProfileData } from '@/src/features/profile/types/profile';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const colors = groupsColors;
@@ -20,11 +22,14 @@ export default function StudyGroupDetailScreen() {
   const { id, name, subjectName, description, isAdmin: isAdminParam, isMember: isMemberParam } = useLocalSearchParams();
   const groupId = typeof id === 'string' ? id : id?.[0];
   const router = useRouter();
-  const { group, loading, joinGroup } = useGroupDetail(groupId ?? '');
-  const { userId } = useAuthStore();
+  const { group, loading, joinGroup, leaveGroup, transferAdmin } = useGroupDetail(groupId ?? '');
+  const { userId, token } = useAuthStore();
   const [localIsMember, setLocalIsMember] = React.useState<boolean | null>(null);
   const [localIsAdmin, setLocalIsAdmin] = React.useState<boolean | null>(null);
+  const [hasPendingRequest, setHasPendingRequest] = React.useState(false);
   const [isJoining, setIsJoining] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('Miembros');
+  const [profiles, setProfiles] = React.useState<Record<string, ProfileData>>({});
 
   const groupNameFromParams = typeof name === 'string' ? name : name?.[0];
   const rawSubjectLabel = typeof subjectName === 'string' ? subjectName : subjectName?.[0];
@@ -33,10 +38,7 @@ export default function StudyGroupDetailScreen() {
   const groupName = group?.name || groupNameFromParams;
   const groupDescription = group?.description || groupDescriptionFromParams;
 
-  React.useEffect(() => {
-    setLocalIsMember(group?.is_member ?? null);
-  }, [group?.is_member]);
-
+  // Pre-fill from URL params (only when navigating from GroupsList which passes these params)
   React.useEffect(() => {
     const parseBoolParam = (value: unknown): boolean | undefined => {
       if (typeof value === 'boolean') return value;
@@ -51,32 +53,50 @@ export default function StudyGroupDetailScreen() {
     const parsedMember = parseBoolParam(isMemberParam);
     const parsedAdmin = parseBoolParam(isAdminParam);
 
-    if (parsedMember !== undefined) {
-      setLocalIsMember(parsedMember);
-    }
-    if (parsedAdmin !== undefined) {
-      setLocalIsAdmin(parsedAdmin);
-    }
+    if (parsedMember !== undefined) setLocalIsMember(parsedMember);
+    if (parsedAdmin !== undefined) setLocalIsAdmin(parsedAdmin);
+  // Only re-run when the URL params change (i.e. navigating to a different group)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, isAdminParam, isMemberParam]);
 
-    if (__DEV__) {
-      console.log(
-        '[StudyGroupDetailScreen] groupId:',
-        groupId,
-        'isAdmin (param):',
-        parsedAdmin,
-        'isMember (param):',
-        parsedMember,
-        'isAdmin (api):',
-        group?.is_admin,
-        'isMember (api):',
-        group?.is_member
+  // Fetch member profiles when the group members list is available
+  React.useEffect(() => {
+    if (!token || !group?.members) return;
+
+    const fetchProfiles = async () => {
+      const memberIds = group.members as string[];
+      if (!Array.isArray(memberIds)) return;
+
+      const missing = memberIds.filter(id => !profiles[id]);
+      if (missing.length === 0) return;
+
+      await Promise.all(
+        missing.map(async (uid) => {
+          const res = await profileHttpService.getProfileById(uid, token);
+          if (res.success && res.data) {
+            setProfiles(prev => ({ ...prev, [uid]: res.data! }));
+          }
+        })
       );
-    }
-  }, [groupId, group?.is_admin, group?.is_member, isAdminParam, isMemberParam]);
+    };
+
+    fetchProfiles();
+  }, [group?.members, token]);
 
   const isCreator = Boolean(group?.creator_id && group?.creator_id === userId);
-  const isAdmin = Boolean(isCreator || (localIsAdmin !== null ? localIsAdmin : group?.is_admin));
-  const isMember = Boolean(isCreator || (localIsMember !== null ? localIsMember : group?.is_member));
+
+  // A user is a member if:
+  //   1. They are the creator (always true)
+  //   2. The API returned is_member=true explicitly
+  //   3. Their userId appears in the members array loaded from the API
+  //   4. The URL params said so (fast pre-fill from GroupsList, before API responds)
+  const isInMembersArray = Boolean(
+    userId &&
+    Array.isArray(group?.members) &&
+    (group!.members as string[]).includes(userId)
+  );
+  const isAdmin = Boolean(isCreator || group?.is_admin || (localIsAdmin !== null ? localIsAdmin : false));
+  const isMember = Boolean(isCreator || isInMembersArray || group?.is_member || (localIsMember !== null ? localIsMember : false));
   const memberCount = group?.member_count;
   const memberCountLabel = typeof memberCount === 'number'
     ? `${memberCount} miembro${memberCount === 1 ? '' : 's'}`
@@ -87,20 +107,85 @@ export default function StudyGroupDetailScreen() {
     try {
       const result = await joinGroup();
       if (result.success) {
-        setLocalIsMember(true);
-        Alert.alert('¡Listo!', 'Ahora eres miembro de este grupo.');
+        // Backend always returns isMember:false after join — it's a pending request
+        setHasPendingRequest(true);
+        Alert.alert(
+          '¡Solicitud enviada!',
+          'Tu solicitud de ingreso fue enviada al administrador del grupo. Podrás acceder una vez que sea aceptada.'
+        );
       } else {
-        Alert.alert('No se pudo unir', 'Intenta de nuevo más tarde.');
+        const msg = result.error || 'Intenta de nuevo más tarde.';
+        // 409 = ya tienes solicitud pendiente
+        if (msg.toLowerCase().includes('pending') || msg.includes('409')) {
+          setHasPendingRequest(true);
+        }
+        Alert.alert('No se pudo enviar la solicitud', msg);
       }
     } finally {
       setIsJoining(false);
     }
   };
 
-  const handleLeave = () => {
+  const handleLeave = async () => {
+    if (isAdmin && (group?.members?.length || 0) > 1) {
+      Alert.alert(
+        'Transferir Administración',
+        'Eres el administrador de este grupo. Antes de salir, debes transferir la administración tocando a otro miembro en la lista de Miembros.',
+        [
+          { text: 'Entendido', onPress: () => setActiveTab('Miembros') }
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
-      'Acción no disponible',
-      'Por ahora no es posible salir de un grupo. Intenta de nuevo más tarde.'
+      'Abandonar Grupo',
+      '¿Estás seguro de que quieres abandonar este grupo de estudio?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sí, salir', 
+          style: 'destructive',
+          onPress: async () => {
+            const result = await leaveGroup();
+            if (result.success) {
+              setLocalIsMember(false);
+              setLocalIsAdmin(false);
+              Alert.alert('Éxito', 'Has abandonado el grupo.', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            } else {
+              Alert.alert('Error', result.error || 'No se pudo abandonar el grupo.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const [isTransferringAdmin, setIsTransferringAdmin] = React.useState<string | null>(null);
+
+  const handleTransferAdmin = async (memberId: string) => {
+    Alert.alert(
+      'Transferir Administración',
+      '¿Estás seguro de que quieres transferir la administración a este usuario?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Transferir',
+          onPress: async () => {
+            setIsTransferringAdmin(memberId);
+            const result = await transferAdmin(memberId);
+            setIsTransferringAdmin(null);
+            
+            if (result.success) {
+              Alert.alert('Solicitud Enviada', 'Se ha enviado la solicitud de transferencia de administración.');
+            } else {
+              Alert.alert('Error', result.error || 'No se pudo enviar la solicitud.');
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -142,6 +227,13 @@ export default function StudyGroupDetailScreen() {
               <View style={styles.infoRow}>
                 <Text style={[styles.infoText, { color: colors.success }]}>Ya estás en este grupo.</Text>
               </View>
+            ) : hasPendingRequest ? (
+              <View style={[styles.infoRow, styles.pendingRow]}>
+                <Ionicons name="time-outline" size={15} color="#D97706" />
+                <Text style={[styles.infoText, { color: '#D97706', marginLeft: 6 }]}>
+                  Solicitud pendiente — esperando aprobación del administrador.
+                </Text>
+              </View>
             ) : null}
 
             <View style={styles.subjectPill}>
@@ -158,19 +250,72 @@ export default function StudyGroupDetailScreen() {
 
           {/* Tabs */}
           <View style={styles.tabsContainer}>
-            {tabs.map((tab, index) => (
-              <View key={tab} style={[styles.tabItem, index === 0 && styles.tabItemActive]}>
+            {tabs.map((tab) => (
+              <TouchableOpacity 
+                key={tab} 
+                style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
+                activeOpacity={0.7}
+                onPress={() => setActiveTab(tab)}
+              >
                 <Text
                   style={[
                     styles.tabText,
-                    index === 0 ? styles.tabTextActive : styles.tabTextInactive,
+                    activeTab === tab ? styles.tabTextActive : styles.tabTextInactive,
                   ]}
                 >
                   {tab}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
+
+          {/* Members List */}
+          {activeTab === 'Miembros' && (
+            <View style={styles.membersContainer}>
+              {Array.isArray(group?.members) && group.members.map((memberId: string) => {
+                const profile = profiles[memberId] as Record<string, any>;
+                const isGroupAdmin = group.creator_id === memberId;
+                const displayName = profile?.name || profile?.full_name || profile?.email || 'Cargando...';
+                const initials = typeof displayName === 'string' && displayName !== 'Cargando...' 
+                  ? displayName.substring(0, 2).toUpperCase() 
+                  : 'U';
+
+                return (
+                  <View key={memberId} style={styles.memberRow}>
+                    <View style={styles.memberAvatar}>
+                      {profile?.avatar_url ? (
+                        <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+                      ) : (
+                        <Text style={styles.memberInitials}>{initials}</Text>
+                      )}
+                    </View>
+                    <View style={styles.memberInfo}>
+                      <Text style={styles.memberName}>{displayName}</Text>
+                      <Text style={styles.memberRole}>
+                        {isGroupAdmin ? 'Administrador del grupo' : 'Miembro activo'}
+                      </Text>
+                    </View>
+                    {isAdmin && !isGroupAdmin && (
+                      <TouchableOpacity 
+                        style={styles.transferButton} 
+                        onPress={() => handleTransferAdmin(memberId)}
+                        disabled={isTransferringAdmin === memberId}
+                      >
+                        {isTransferringAdmin === memberId ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <Ionicons name="swap-horizontal" size={20} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              })}
+              {(!group?.members || group.members.length === 0) && (
+                <Text style={styles.noMembersText}>Aún no hay miembros en este grupo.</Text>
+              )}
+            </View>
+          )}
 
           {/* Spacer so content isn't hidden behind footer */}
           <View style={styles.footerSpacer} />
@@ -178,7 +323,12 @@ export default function StudyGroupDetailScreen() {
 
         {/* Footer action */}
         <View style={styles.footer}>
-          {isAdmin || isMember ? (
+          {loading && group === null ? (
+            // Still fetching group data — don't show action buttons yet (prevents join flash for members)
+            <View style={styles.footerLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : isAdmin || isMember ? (
             <>
               <TouchableOpacity
                 style={styles.wallButton}
@@ -198,18 +348,25 @@ export default function StudyGroupDetailScreen() {
                 </Text>
               </TouchableOpacity>
             </>
+          ) : hasPendingRequest ? (
+            <View style={styles.pendingBanner}>
+              <Ionicons name="time-outline" size={20} color="#D97706" />
+              <Text style={styles.pendingBannerText}>
+                Solicitud enviada — en espera de aprobación
+              </Text>
+            </View>
           ) : (
             <TouchableOpacity
-              style={loading || isJoining ? [styles.actionButton, styles.actionButtonDisabled] : styles.actionButton}
+              style={isJoining ? [styles.actionButton, styles.actionButtonDisabled] : styles.actionButton}
               activeOpacity={0.7}
               onPress={handleJoin}
-              disabled={loading || isJoining}
+              disabled={isJoining}
             >
               {isJoining ? (
                 <>
                   <ActivityIndicator size="small" color="#FFFFFF" style={styles.actionButtonSpinner} />
                   <Text style={[styles.actionButtonText, styles.actionButtonTextWithIcon]}>
-                    UNIRME AL GRUPO
+                    ENVIANDO SOLICITUD...
                   </Text>
                 </>
               ) : (
@@ -376,5 +533,100 @@ const styles = StyleSheet.create({
   },
   tabTextInactive: {
     color: colors.label,
+  },
+  membersContainer: {
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  memberAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 33, 71, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  memberInitials: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  memberInfo: {
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  memberRole: {
+    fontSize: 13,
+    color: colors.label,
+  },
+  noMembersText: {
+    textAlign: 'center',
+    marginTop: 24,
+    color: colors.label,
+    fontSize: 14,
+  },
+  transferButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 33, 71, 0.05)',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pendingRow: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  pendingBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#D97706',
+    flexShrink: 1,
+  },
+  footerLoading: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
   },
 });
